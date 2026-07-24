@@ -1,0 +1,1656 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>FRONT-X 투자영업실 · 주간 KPI 보고</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+  :root{
+    --navy:#1E2761;
+    --navy-dk:#141A47;
+    --ice:#CADCFC;
+    --accent:#3E5C9A;
+    --gray:#44506B;
+    --bg:#F5F7FC;
+    --card:#FFFFFF;
+    --line:#E4E8F2;
+    --a-color:#2F7D4F;
+    --b-color:#3E5C9A;
+    --c-color:#B8862C;
+    --d-color:#B0392E;
+    --m-color:#6B4FA0;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; font-family:'Malgun Gothic','Apple SD Gothic Neo',sans-serif;
+    background:var(--bg); color:var(--navy-dk);
+  }
+  #appRoot{ display:flex; min-height:100vh; }
+
+  /* ---------------- Auth gate ---------------- */
+  #authGate{
+    position:fixed; inset:0; z-index:500; background:var(--navy-dk);
+    display:flex; align-items:center; justify-content:center; padding:20px;
+  }
+  .auth-card{
+    background:#fff; border-radius:14px; padding:30px 30px 26px; width:min(380px,100%);
+    box-shadow:0 20px 60px rgba(0,0,0,0.35);
+  }
+  .auth-card h2{ margin:0 0 4px; font-size:18px; color:var(--navy-dk); }
+  .auth-card .sub{ font-size:12px; color:#93A0BE; margin-bottom:20px; line-height:1.6; }
+  .auth-card label{ display:block; font-size:11.5px; font-weight:700; color:var(--gray); margin-bottom:5px; }
+  .auth-card input{
+    width:100%; padding:10px 12px; border:1px solid var(--line); border-radius:8px;
+    font-size:14px; font-family:inherit; margin-bottom:13px;
+  }
+  .auth-card input:focus{ outline:2px solid var(--accent); border-color:transparent; }
+  .auth-card button{
+    width:100%; padding:11px; border:none; border-radius:8px; background:var(--navy);
+    color:#fff; font-size:14px; font-weight:700; cursor:pointer; font-family:inherit;
+  }
+  .auth-card button:hover{ background:var(--navy-dk); }
+  .auth-card button:disabled{ opacity:.6; cursor:default; }
+  .auth-msg{ font-size:12px; margin-top:12px; line-height:1.6; min-height:16px; }
+  .auth-msg.err{ color:#B0392E; }
+  .auth-msg.ok{ color:#2F7D4F; }
+  .auth-msg code{
+    display:block; background:#F5F7FC; border-radius:6px; padding:8px 10px; margin-top:6px;
+    font-size:11px; color:var(--gray); word-break:break-all;
+  }
+
+  /* ---------------- Sidebar ---------------- */
+  #sidebar{
+    width:280px; min-width:280px; background:var(--navy-dk); color:#fff;
+    display:flex; flex-direction:column; padding:18px 14px; height:100vh;
+    position:sticky; top:0; overflow-y:auto;
+  }
+  #sidebar h1{
+    font-size:15px; margin:2px 0 2px; font-weight:700; outline:none; line-height:1.4;
+  }
+  #sidebar .sub{ font-size:11px; color:#9AA5C0; margin-bottom:14px; outline:none;}
+  .year-nav{
+    display:flex; align-items:center; justify-content:space-between;
+    background:var(--navy); border-radius:8px; padding:8px 10px; margin-bottom:10px;
+  }
+  .year-nav button{
+    background:none; border:none; color:#cfd8f5; font-size:16px; cursor:pointer; padding:2px 8px;
+    border-radius:6px;
+  }
+  .year-nav button:hover{ background:rgba(255,255,255,0.12); }
+  .year-nav .yr{ font-weight:700; font-size:15px; }
+  .month-block{ margin-bottom:4px; border-radius:8px; overflow:hidden; }
+  .month-head{
+    display:flex; justify-content:space-between; align-items:center;
+    padding:9px 10px; cursor:pointer; font-size:13px; font-weight:600; color:#dbe2f5;
+    background:rgba(255,255,255,0.03); border-radius:8px;
+  }
+  .month-head:hover{ background:rgba(255,255,255,0.08); }
+  .month-head .car{ transition:transform .15s; font-size:10px; color:#8b96bd; }
+  .month-block.open .month-head .car{ transform:rotate(90deg); }
+  .week-list{ display:none; padding:2px 4px 8px 10px; }
+  .month-block.open .week-list{ display:block; }
+  .week-item{
+    display:flex; justify-content:space-between; align-items:center;
+    padding:7px 10px; margin:2px 0; font-size:12.5px; border-radius:6px;
+    cursor:pointer; color:#c3cbe6;
+  }
+  .week-item:hover{ background:rgba(255,255,255,0.08); }
+  .week-item.active{ background:var(--accent); color:#fff; font-weight:700; }
+  .week-item .cnt{
+    font-size:10.5px; background:rgba(255,255,255,0.15); padding:1px 6px; border-radius:8px;
+  }
+  .week-item.active .cnt{ background:rgba(255,255,255,0.28); }
+  #sidebar .tools{
+    margin-top:auto; padding-top:12px; border-top:1px solid rgba(255,255,255,0.1);
+    position:sticky; bottom:-18px; background:var(--navy-dk); padding-bottom:18px;
+  }
+  #sidebar .tools button{
+    width:100%; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.15);
+    color:#cfd8f5; padding:8px; border-radius:8px; font-size:11.5px; cursor:pointer; margin-bottom:6px;
+    font-family:inherit;
+  }
+  #sidebar .tools button:hover{ background:rgba(255,255,255,0.14); }
+  #saveIndicator{ font-size:10.5px; color:#7c86ad; text-align:center; margin-top:4px; line-height:1.5; }
+  #whoami{ font-size:10px; color:#5f6a90; text-align:center; margin-top:6px; word-break:break-all; }
+
+  /* ---------------- Main ---------------- */
+  #main{ flex:1; padding:26px 34px 60px; max-width:1180px; }
+  .topbar{ display:flex; align-items:center; gap:8px; margin-bottom:18px; flex-wrap:wrap; }
+  .tab{
+    padding:8px 16px; border-radius:20px; background:var(--card); border:1px solid var(--line);
+    font-size:13px; font-weight:700; color:var(--gray); cursor:pointer;
+  }
+  .tab.active{ background:var(--navy); color:#fff; border-color:var(--navy); }
+
+  /* agent tabs */
+  .agent-tabs{ display:flex; gap:8px; align-items:center; margin-bottom:16px; flex-wrap:wrap; }
+  .agent-tab{
+    padding:7px 15px; border-radius:16px; background:var(--card); border:1px solid var(--line);
+    font-size:12.5px; font-weight:700; color:var(--gray); cursor:pointer;
+  }
+  .agent-tab:hover{ background:#eef1fb; }
+  .agent-tab.active{ background:var(--accent); color:#fff; border-color:var(--accent); }
+  .agent-settings-btn{
+    margin-left:auto; padding:7px 13px; border-radius:16px; background:#EEF1FB; color:var(--accent);
+    font-size:11.5px; font-weight:700; cursor:pointer; border:1px solid var(--line);
+  }
+  .agent-settings-btn:hover{ background:#e2e7f8; }
+  .agent-settings-panel{
+    background:var(--card); border:1px solid var(--line); border-radius:10px; padding:14px 16px; margin-bottom:16px;
+  }
+  .agent-settings-title{ font-size:13px; font-weight:800; margin-bottom:10px; color:var(--navy-dk); }
+  .agent-settings-list{ display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px; }
+  .agent-settings-item{
+    display:flex; align-items:center; gap:7px; background:#F0F2FA; border-radius:14px; padding:5px 6px 5px 13px; font-size:12.5px;
+  }
+  .agent-settings-item button{
+    border:none; background:#dfe4f4; color:#5a6690; width:19px; height:19px; border-radius:50%; cursor:pointer; font-size:11px; line-height:1;
+  }
+  .agent-settings-item button:hover{ background:#f0c9c9; color:#a5352c; }
+  .agent-settings-item input.agent-rename-input{
+    border:1px solid transparent; background:transparent; font-size:12.5px; font-family:inherit;
+    color:var(--navy-dk); padding:2px 4px; border-radius:5px; width:auto;
+    min-width:40px; max-width:160px;
+  }
+  .agent-settings-item input.agent-rename-input:hover{ border-color:var(--line); background:#fff; }
+  .agent-settings-item input.agent-rename-input:focus{ outline:none; border-color:var(--accent); background:#fff; }
+  .agent-add-row{ display:flex; gap:8px; }
+  .agent-add-row input{ flex:1; padding:7px 10px; border:1px solid var(--line); border-radius:6px; font-size:12.5px; font-family:inherit; }
+  .agent-add-row button{
+    padding:7px 16px; border-radius:6px; background:var(--navy); color:#fff; border:none; font-size:12.5px; cursor:pointer; font-weight:700;
+  }
+  .agent-add-row button:hover{ background:var(--navy-dk); }
+  .agent-settings-hint{ font-size:10.5px; color:#93A0BE; margin-top:9px; line-height:1.5; }
+
+  .yearsum-clickable{
+    cursor:pointer; text-decoration:underline dotted; text-underline-offset:3px;
+  }
+  .yearsum-clickable:hover{ color:var(--accent); }
+  .breakdown-backdrop{
+    position:fixed; inset:0; background:rgba(20,24,45,0.45); display:flex; align-items:center; justify-content:center; z-index:200;
+  }
+  .breakdown-modal{
+    background:#fff; border-radius:12px; padding:20px 22px; width:min(360px, 88vw); max-height:70vh; overflow-y:auto;
+    box-shadow:0 12px 40px rgba(20,24,45,0.25);
+  }
+  .breakdown-modal h3{ font-size:14.5px; font-weight:800; color:var(--navy-dk); margin-bottom:2px; }
+  .breakdown-modal .bd-sub{ font-size:11.5px; color:#93A0BE; margin-bottom:14px; }
+  .breakdown-row{
+    display:flex; align-items:center; justify-content:space-between; padding:9px 4px; border-bottom:1px solid var(--line);
+    font-size:13px;
+  }
+  .breakdown-row:last-child{ border-bottom:none; }
+  .breakdown-row .bd-name{ font-weight:700; color:var(--navy-dk); }
+  .breakdown-row .bd-count{ font-weight:800; color:var(--accent); }
+  .breakdown-row.bd-empty{ color:#93A0BE; font-weight:500; justify-content:center; }
+  .breakdown-close{
+    margin-top:14px; width:100%; padding:9px; border:none; border-radius:7px; background:#EEF1FB; color:var(--navy);
+    font-weight:700; font-size:12.5px; cursor:pointer;
+  }
+  .breakdown-close:hover{ background:#e2e7f8; }
+
+  .report-title{
+    font-size:24px; font-weight:800; color:var(--navy-dk); outline:none;
+    padding:2px 4px; border-radius:6px;
+  }
+  .report-title:hover, .editable:hover{ background:#eef1fb; }
+  .date-range{ font-size:12.5px; color:var(--gray); margin:2px 0 20px; }
+
+  .card{
+    background:var(--card); border:1px solid var(--line); border-radius:12px;
+    padding:18px 20px; margin-bottom:18px; box-shadow:0 2px 6px rgba(30,39,97,0.05);
+  }
+  .card h2{ font-size:15px; margin:0 0 4px; color:var(--navy-dk); }
+  .card .hint{ font-size:11px; color:#93A0BE; margin-bottom:12px; }
+
+  /* summary strip */
+  .summary-row{ display:flex; gap:12px; margin-bottom:18px; flex-wrap:wrap; }
+  .sum-box{
+    flex:1; min-width:130px; background:var(--navy-dk); color:#fff; border-radius:12px;
+    padding:14px 16px;
+  }
+  .sum-box .lbl{ font-size:11px; color:#9AA5C0; margin-bottom:6px; }
+  .sum-box .val{ font-size:22px; font-weight:800; outline:none; }
+  .sum-box.alt{ background:var(--accent); }
+
+  table.kpi-table{ width:100%; border-collapse:collapse; font-size:13px; }
+  table.kpi-table th{
+    background:var(--navy); color:#fff; text-align:left; padding:9px 10px; font-size:12px;
+  }
+  table.kpi-table td{ padding:8px 10px; border-bottom:1px solid var(--line); vertical-align:middle; }
+  table.kpi-table tr:last-child td{ border-bottom:none; }
+  table.kpi-table tr:nth-child(even) td{ background:#F8F9FD; }
+  table.kpi-table input[type=number]{
+    width:70px; padding:5px 6px; border:1px solid var(--line); border-radius:6px; font-size:13px;
+    text-align:center;
+  }
+  table.kpi-table input[type=number]:focus{ outline:2px solid var(--accent); }
+  textarea.note-input{
+    width:100%; min-width:120px; border:1px solid var(--line); border-radius:6px; padding:6px 8px;
+    font-size:12.5px; font-family:inherit; line-height:1.5; resize:none; overflow:hidden;
+    display:block; min-height:30px;
+  }
+  textarea.note-input:focus{ outline:2px solid var(--accent); }
+  input[readonly], textarea[readonly]{ background:#F1F2F8 !important; color:#707C9C; }
+  .agg{ font-weight:700; color:var(--accent); font-size:12.5px; }
+  .agg small{ display:block; font-weight:400; color:#9AA5C0; font-size:9.5px; }
+
+  /* grade cards */
+  .grade-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:14px;}
+  .grade-card{ border-radius:10px; padding:14px; color:#fff; }
+  .grade-card.A{ background:var(--a-color); }
+  .grade-card.B{ background:var(--b-color); }
+  .grade-card.C{ background:var(--c-color); }
+  .grade-card.D{ background:var(--d-color); }
+  .grade-card .g-top{ display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;}
+  .grade-card .g-name{ font-size:15px; font-weight:800; outline:none; }
+  .grade-card input[type=number]{
+    width:56px; font-size:18px; font-weight:800; text-align:center; border:none; border-radius:6px;
+    padding:2px 4px; background:rgba(255,255,255,0.2); color:#fff;
+  }
+  .grade-card input[type=number][readonly]{ background:rgba(255,255,255,0.32) !important; color:#fff; }
+  .grade-card .g-def{ font-size:10.5px; line-height:1.4; opacity:0.92; outline:none; min-height:32px; }
+  .grade-agg{ display:flex; gap:6px; font-size:10px; margin-top:8px; opacity:0.85; }
+  .grade-agg span{ background:rgba(255,255,255,0.18); padding:2px 6px; border-radius:8px; }
+
+  .meta-box{ display:flex; gap:14px; flex-wrap:wrap; align-items:stretch; }
+  .meta-item{ flex:1; min-width:140px; background:#F0F2FA; border-radius:10px; padding:12px 14px; }
+  .meta-item .lbl{ font-size:11.5px; color:var(--gray); margin-bottom:6px; font-weight:600; }
+  .meta-item input[type=number]{
+    width:70px; font-size:18px; font-weight:800; text-align:center; border:1px solid var(--line);
+    border-radius:6px; padding:4px; color:var(--m-color);
+  }
+  .meta-item .sub-agg{ font-size:10px; color:#9AA5C0; margin-top:6px; }
+
+  textarea.week-note{
+    width:100%; border:1px solid var(--line); border-radius:8px; padding:10px; font-size:12.5px;
+    font-family:inherit; min-height:60px; resize:vertical;
+  }
+
+  /* month/year view tables */
+  .picker-row{ display:flex; gap:8px; align-items:center; margin-bottom:14px; }
+  .picker-row select{
+    padding:6px 10px; border-radius:6px; border:1px solid var(--line); font-size:13px;
+  }
+  table.agg-table{ width:100%; border-collapse:collapse; font-size:12.5px; }
+  table.agg-table th{ background:var(--navy); color:#fff; padding:8px; font-size:11.5px; }
+  table.agg-table td{ padding:7px 8px; border-bottom:1px solid var(--line); text-align:center; }
+  table.agg-table tr:nth-child(even) td{ background:#F8F9FD; }
+  table.agg-table td.rowlabel{ text-align:left; font-weight:700; color:var(--navy-dk); }
+  table.agg-table tr.total-row td{ background:var(--ice); font-weight:800; }
+
+  .foot-note{ font-size:11px; color:#93A0BE; margin-top:24px; line-height:1.6; }
+  ::selection{ background:#c9d6f7; }
+</style>
+</head>
+<body>
+
+<!-- ============ 로그인 화면 ============ -->
+<div id="authGate">
+  <div class="auth-card">
+    <h2>FRONT-X 주간 KPI 트래커</h2>
+    <div class="sub">팀 계정으로 로그인하세요. 계정은 관리자가 Supabase에서 발급합니다.</div>
+    <form id="authForm">
+      <label for="authEmail">이메일</label>
+      <input type="email" id="authEmail" autocomplete="username" required>
+      <label for="authPw">비밀번호</label>
+      <input type="password" id="authPw" autocomplete="current-password" required>
+      <button type="submit" id="authBtn">로그인</button>
+    </form>
+    <div class="auth-msg" id="authMsg"></div>
+  </div>
+</div>
+
+<!-- ============ 앱 본체 ============ -->
+<div id="appRoot" style="display:none;">
+  <div id="sidebar">
+    <h1 class="editable" contenteditable="true" id="sbTitle">FRONT-X 투자영업실</h1>
+    <div class="sub editable" contenteditable="true" id="sbSub">주간 영업 KPI 보고 트래커</div>
+
+    <div class="year-nav">
+      <button onclick="changeSidebarYear(-1)">◀</button>
+      <div class="yr" id="yrLabel"></div>
+      <button onclick="changeSidebarYear(1)">▶</button>
+    </div>
+
+    <div id="monthTree"></div>
+
+    <div class="tools">
+      <button onclick="exportData()">⬇ 백업 파일로 내보내기</button>
+      <button onclick="document.getElementById('importFile').click()">⬆ 백업 파일 불러오기</button>
+      <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
+      <button onclick="resetAll()" style="color:#ffb0b0;">⟲ 전체 초기화</button>
+      <button onclick="signOut()">로그아웃</button>
+      <div id="saveIndicator">불러오는 중...</div>
+      <div id="whoami"></div>
+    </div>
+  </div>
+
+  <div id="main">
+    <div class="topbar">
+      <div class="tab" data-mode="week" onclick="setMode('week')">주간 보고</div>
+      <div class="tab" data-mode="month" onclick="setMode('month')">월간 현황</div>
+      <div class="tab" data-mode="year" onclick="setMode('year')">연간 현황</div>
+    </div>
+
+    <div id="viewArea">불러오는 중...</div>
+
+    <div class="foot-note">
+      ※ 모든 제목·숫자·문단은 클릭해서 바로 수정할 수 있으며, 입력 즉시 Supabase에 자동 저장됩니다.<br>
+      ※ 여러 명이 동시에 열어두면 서로의 입력이 실시간으로 반영됩니다.<br>
+      ※ "전체"는 담당자별 데이터를 자동 합산해 보여주는 화면이라 직접 입력할 수 없습니다. 담당자 탭을 선택해 실적을 입력해주세요.<br>
+      ※ 정기적으로 좌측 하단의 "백업 파일로 내보내기"를 이용해 별도 보관하는 것을 권장합니다.
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="config.js"></script>
+<script>
+/* ============================================================
+   DEFAULTS
+   ============================================================ */
+const DEFAULT_ITEMS = [
+  {key:'visit',        label:'신규 방문 업체',        target:'월 150개'},
+  {key:'consult',       label:'대표 상담',             target:'월 20건'},
+  {key:'quote',         label:'견적 발송',             target:'월 5건'},
+  {key:'contract',      label:'계약 체결',             target:'월 1~3건'},
+  {key:'prospect',      label:'가망업체 확보',         target:'월 5~8건'},
+  {key:'revisit',       label:'재방문 관리',           target:'월 10~15건'},
+  {key:'metaResponse',  label:'메타광고 문의 대응(건)', target:'100%'},
+];
+
+const DEFAULT_GRADE_DEFS = {
+  A:'결정권자 상담완료 / 도입시기 구체적 언급',
+  B:'관심 업체 / 설치예산 미정 / 재방문 필요',
+  C:'가격 민감 / 담당자만 응대, 결정권자 미접촉',
+  D:'확실한 거절 / 여관급 모텔 (Drop)',
+};
+
+const UI_KEY = 'frontx_kpi_ui_v2';   // 화면 상태만 브라우저에 저장 (사람마다 달라야 하므로)
+
+function defaultUI(){
+  return {
+    sidebarYear: new Date().getFullYear(),
+    currentWeekKey: null,
+    viewMode: 'week',
+    openMonths: {},
+    currentAgent: 'ALL',
+    showAgentSettings: false
+  };
+}
+
+let DB = null;        // { meta:{title,subtitle}, config:{items,gradeDefs,agents}, weeks:{}, ui:{} }
+let SB = null;        // Supabase client
+let CURRENT_USER = null;
+
+/* ============================================================
+   SYNC STATUS
+   ============================================================ */
+function setStatus(text){
+  const el = document.getElementById('saveIndicator');
+  if(el) el.textContent = text;
+}
+function nowTime(){ return new Date().toLocaleTimeString('ko-KR'); }
+
+/* ============================================================
+   UI STATE (localStorage - 화면 상태 전용)
+   ============================================================ */
+function loadUIState(){
+  try{
+    const raw = localStorage.getItem(UI_KEY);
+    if(!raw) return defaultUI();
+    return Object.assign(defaultUI(), JSON.parse(raw));
+  }catch(e){ return defaultUI(); }
+}
+// 기존 코드 전반에서 호출되는 이름 그대로 유지 - 이제는 "화면 상태만" 저장한다
+function scheduleSave(){
+  try{ localStorage.setItem(UI_KEY, JSON.stringify(DB.ui)); }catch(e){}
+}
+
+/* ============================================================
+   DIRTY QUEUE → Supabase
+   ============================================================ */
+const pending = { config:false, agents:false, weeks:new Map() };
+let flushTimer = null;
+let retryTimer = null;
+
+function markConfigDirty(){ pending.config = true; queueFlush(); }
+function markAgentsDirty(){ pending.agents = true; queueFlush(); }
+function markWeekDirty(weekKey, agentId){
+  if(!weekKey || !agentId || agentId==='ALL') return;
+  pending.weeks.set(weekKey+'|'+agentId, {weekKey, agentId});
+  queueFlush();
+}
+function queueFlush(){
+  clearTimeout(flushTimer);
+  flushTimer = setTimeout(flushPending, 600);
+}
+
+async function flushPending(){
+  if(!SB || !CURRENT_USER) return;
+  const doConfig = pending.config, doAgents = pending.agents;
+  const weeks = Array.from(pending.weeks.values());
+  if(!doConfig && !doAgents && weeks.length===0) return;
+
+  pending.config = false;
+  pending.agents = false;
+  pending.weeks.clear();
+  setStatus('저장 중...');
+
+  try{
+    const jobs = [];
+    if(doConfig) jobs.push(pushConfig());
+    if(doAgents) jobs.push(pushAgents());
+    weeks.forEach(w => jobs.push(pushWeek(w.weekKey, w.agentId)));
+    await Promise.all(jobs);
+    setStatus('☁ 저장됨 ' + nowTime());
+  }catch(e){
+    console.error('save error', e);
+    // 실패한 작업을 다시 큐에 넣고 재시도
+    if(doConfig) pending.config = true;
+    if(doAgents) pending.agents = true;
+    weeks.forEach(w => pending.weeks.set(w.weekKey+'|'+w.agentId, w));
+    setStatus('⚠ 저장 실패 - 재시도 중 (연결 확인)');
+    clearTimeout(retryTimer);
+    retryTimer = setTimeout(flushPending, 4000);
+  }
+}
+
+function throwIf(res){ if(res && res.error) throw res.error; return res; }
+
+async function pushConfig(){
+  throwIf(await SB.from('app_config').upsert({
+    id: 1,
+    title: DB.meta.title,
+    subtitle: DB.meta.subtitle,
+    items: DB.config.items,
+    grade_defs: DB.config.gradeDefs
+  }));
+}
+
+async function pushAgents(){
+  if(DB.config.agents.length===0) return;
+  throwIf(await SB.from('agents').upsert(
+    DB.config.agents.map((a,i)=>({id:a.id, name:a.name, sort_order:i}))
+  ));
+}
+
+async function pushWeek(weekKey, agentId){
+  const wd = DB.weeks[weekKey] && DB.weeks[weekKey].agents && DB.weeks[weekKey].agents[agentId];
+  if(!wd) return;
+  throwIf(await SB.from('week_entries').upsert({
+    week_key: weekKey,
+    agent_id: agentId,
+    title: wd.title || '',
+    items: wd.items || {},
+    grades: wd.grades || {},
+    meta_inbound: wd.metaInbound || {}
+  }));
+}
+
+/* ============================================================
+   LOAD FROM SUPABASE
+   ============================================================ */
+function fillMissingItemKeys(wd, items){
+  wd.items = wd.items || {};
+  items.forEach(it=>{ if(!wd.items[it.key]) wd.items[it.key] = {val:0, note:''}; });
+  wd.grades = Object.assign({A:0,B:0,C:0,D:0,note:''}, wd.grades||{});
+  wd.metaInbound = Object.assign({inbound:0,phoneGuide:0,met:0,toMeet:0,note:''}, wd.metaInbound||{});
+  return wd;
+}
+
+/* "메타광고 문의 대응" KPI 항목을 메타광고 인입 건수와 항상 일치시킨다 */
+function syncMetaResponseAll(dbObj){
+  Object.keys(dbObj.weeks).forEach(key=>{
+    const wk = dbObj.weeks[key];
+    if(!wk || !wk.agents) return;
+    Object.keys(wk.agents).forEach(agentId=>{
+      const wd = wk.agents[agentId];
+      if(wd && wd.items && wd.metaInbound){
+        if(!wd.items.metaResponse) wd.items.metaResponse = {val:0, note:''};
+        wd.items.metaResponse.val = Number(wd.metaInbound.inbound||0);
+      }
+    });
+  });
+  return dbObj;
+}
+
+async function loadDB(){
+  const [cfgRes, agRes, wkRes] = await Promise.all([
+    SB.from('app_config').select('*').eq('id',1).maybeSingle(),
+    SB.from('agents').select('*').order('sort_order', {ascending:true}),
+    SB.from('week_entries').select('*')
+  ]);
+  throwIf(cfgRes); throwIf(agRes); throwIf(wkRes);
+
+  const cfg = cfgRes.data || {};
+  const db = {
+    meta: {
+      title: cfg.title || 'FRONT-X 투자영업실',
+      subtitle: cfg.subtitle || '주간 영업 KPI 보고 트래커'
+    },
+    config: {
+      items: (cfg.items && cfg.items.length) ? cfg.items : JSON.parse(JSON.stringify(DEFAULT_ITEMS)),
+      gradeDefs: (cfg.grade_defs && Object.keys(cfg.grade_defs).length) ? cfg.grade_defs : Object.assign({}, DEFAULT_GRADE_DEFS),
+      agents: (agRes.data || []).map(a=>({id:a.id, name:a.name}))
+    },
+    weeks: {},
+    ui: loadUIState()
+  };
+
+  (wkRes.data || []).forEach(r=>{
+    if(!db.weeks[r.week_key]) db.weeks[r.week_key] = {agents:{}};
+    db.weeks[r.week_key].agents[r.agent_id] = fillMissingItemKeys({
+      title: r.title,
+      items: r.items,
+      grades: r.grades,
+      metaInbound: r.meta_inbound
+    }, db.config.items);
+  });
+
+  syncMetaResponseAll(db);
+  return db;
+}
+
+/* ============================================================
+   REALTIME
+   ============================================================ */
+let editingRecord = null;      // 지금 내가 편집 중인 '주차|담당자' — 원격 변경을 덮어쓰지 않도록
+let remoteRenderPending = false;
+
+function isTypingNow(){
+  const ae = document.activeElement;
+  return !!(ae && (ae.tagName==='INPUT' || ae.tagName==='TEXTAREA' || ae.isContentEditable));
+}
+function requestRemoteRender(){
+  if(isTypingNow()){ remoteRenderPending = true; return; }
+  remoteRenderPending = false;
+  renderSidebar();
+  renderMain();
+}
+document.addEventListener('focusout', ()=>{
+  setTimeout(()=>{ if(remoteRenderPending && !isTypingNow()) requestRemoteRender(); }, 150);
+});
+
+function subscribeRealtime(){
+  SB.channel('frontx-kpi')
+    .on('postgres_changes', {event:'*', schema:'public', table:'week_entries'}, payload=>{
+      const row = payload.new || payload.old;
+      if(!row) return;
+      const recKey = row.week_key+'|'+row.agent_id;
+      if(recKey === editingRecord) return;   // 내가 입력 중인 칸은 건드리지 않음
+      if(payload.eventType === 'DELETE'){
+        if(DB.weeks[row.week_key]) delete DB.weeks[row.week_key].agents[row.agent_id];
+      }else{
+        if(!DB.weeks[row.week_key]) DB.weeks[row.week_key] = {agents:{}};
+        DB.weeks[row.week_key].agents[row.agent_id] = fillMissingItemKeys({
+          title: payload.new.title,
+          items: payload.new.items,
+          grades: payload.new.grades,
+          metaInbound: payload.new.meta_inbound
+        }, DB.config.items);
+      }
+      requestRemoteRender();
+    })
+    .on('postgres_changes', {event:'*', schema:'public', table:'agents'}, async ()=>{
+      const res = await SB.from('agents').select('*').order('sort_order', {ascending:true});
+      if(res.error) return;
+      DB.config.agents = res.data.map(a=>({id:a.id, name:a.name}));
+      requestRemoteRender();
+    })
+    .on('postgres_changes', {event:'*', schema:'public', table:'app_config'}, payload=>{
+      if(!payload.new) return;
+      if(isTypingNow()){ remoteRenderPending = true; return; }
+      DB.meta.title = payload.new.title;
+      DB.meta.subtitle = payload.new.subtitle;
+      DB.config.items = payload.new.items;
+      DB.config.gradeDefs = payload.new.grade_defs;
+      applyMetaToSidebar();
+      requestRemoteRender();
+    })
+    .subscribe();
+}
+
+/* ============================================================
+   DATE / WEEK HELPERS  (주차 = 해당 월 1~7일=1주차, 8~14=2주차 ...)
+   ============================================================ */
+function daysInMonth(y,m){ return new Date(y, m, 0).getDate(); }
+function weeksInMonth(y,m){ return Math.ceil(daysInMonth(y,m)/7); }
+function weekKey(y,m,w){ return y+'-'+String(m).padStart(2,'0')+'-'+w; }
+function weekRangeLabel(y,m,w){
+  const start = (w-1)*7+1;
+  const end = Math.min(w*7, daysInMonth(y,m));
+  return m+'/'+start+' ~ '+m+'/'+end;
+}
+function pad(n){ return String(n).padStart(2,'0'); }
+
+function findCurrentWeekKey(){
+  const now = new Date();
+  const y = now.getFullYear(), m = now.getMonth()+1, d = now.getDate();
+  const w = Math.ceil(d/7);
+  return weekKey(y,m,w);
+}
+
+/* ============================================================
+   AGENT / WEEK DATA ACCESS
+   ============================================================ */
+function agentDisplayName(id){
+  if(id==='ALL') return '전체';
+  const a = DB.config.agents.find(x=>x.id===id);
+  if(a) return a.name;
+  if(id==='legacy') return '이전 데이터';
+  return id;
+}
+
+function blankItems(){
+  const items = {};
+  DB.config.items.forEach(it=>{ items[it.key] = {val:0, note:''}; });
+  return items;
+}
+function blankAgentWeek(y,m,w,agentName){
+  return {
+    title: y+'년 '+m+'월 '+w+'주차 '+(agentName?agentName+' ':'')+'영업 KPI 보고',
+    items: blankItems(),
+    grades: {A:0,B:0,C:0,D:0, note:''},
+    metaInbound: {inbound:0, phoneGuide:0, met:0, toMeet:0, note:''}
+  };
+}
+
+// mutating accessor - creates the agent's week entry on first write
+function ensureAgentWeek(key, agentId){
+  if(!DB.weeks[key]) DB.weeks[key] = {agents:{}};
+  if(!DB.weeks[key].agents) DB.weeks[key].agents = {};
+  if(!DB.weeks[key].agents[agentId]){
+    const [y,m,w] = key.split('-').map(Number);
+    DB.weeks[key].agents[agentId] = blankAgentWeek(y,m,w, agentDisplayName(agentId));
+  }
+  return DB.weeks[key].agents[agentId];
+}
+
+// read-only accessor - never mutates DB (safe for aggregation loops)
+function getAgentWeekReadonly(key, agentId){
+  const wk = DB.weeks[key];
+  if(wk && wk.agents && wk.agents[agentId]) return wk.agents[agentId];
+  return { title:'', items:blankItems(), grades:{A:0,B:0,C:0,D:0,note:''}, metaInbound:{inbound:0,phoneGuide:0,met:0,toMeet:0,note:''} };
+}
+
+// combined "전체" view for a single week: sums every agent bucket stored under that week
+function weekAllValues(key){
+  const wk = DB.weeks[key];
+  const agentsObj = (wk && wk.agents) ? wk.agents : {};
+  const ids = Object.keys(agentsObj);
+
+  const items = {};
+  DB.config.items.forEach(it=>{
+    let sum = 0;
+    const noteLines = [];
+    ids.forEach(id=>{
+      const rec = agentsObj[id].items[it.key];
+      sum += Number(rec && rec.val || 0);
+      if(rec && rec.note) noteLines.push(agentDisplayName(id)+': '+rec.note);
+    });
+    items[it.key] = {val:sum, note: noteLines.join('\n')};
+  });
+
+  const grades = {A:0,B:0,C:0,D:0};
+  const gradeNoteLines = [];
+  ids.forEach(id=>{
+    ['A','B','C','D'].forEach(g=>{ grades[g] += Number(agentsObj[id].grades[g]||0); });
+    if(agentsObj[id].grades.note) gradeNoteLines.push(agentDisplayName(id)+': '+agentsObj[id].grades.note);
+  });
+
+  const metaInbound = {inbound:0, phoneGuide:0, met:0, toMeet:0};
+  const metaNoteLines = [];
+  ids.forEach(id=>{
+    ['inbound','phoneGuide','met','toMeet'].forEach(k=>{ metaInbound[k] += Number(agentsObj[id].metaInbound[k]||0); });
+    if(agentsObj[id].metaInbound.note) metaNoteLines.push(agentDisplayName(id)+': '+agentsObj[id].metaInbound.note);
+  });
+  grades.note = gradeNoteLines.join('\n');
+  metaInbound.note = metaNoteLines.join('\n');
+
+  return { title:'', items, grades, metaInbound };
+}
+
+// agent-aware aggregation across weeks / months (agentId can be 'ALL' or a specific id)
+function sumOverWeeksForAgent(y,m,agentId,fieldGetter){
+  const n = weeksInMonth(y,m);
+  let total = 0;
+  for(let w=1; w<=n; w++){
+    const k = weekKey(y,m,w);
+    const data = (agentId==='ALL') ? weekAllValues(k) : getAgentWeekReadonly(k, agentId);
+    total += (fieldGetter(data) || 0);
+  }
+  return total;
+}
+function sumOverMonthsForAgent(y,agentId,fieldGetter){
+  let total = 0;
+  for(let m=1; m<=12; m++){
+    total += sumOverWeeksForAgent(y,m,agentId,fieldGetter);
+  }
+  return total;
+}
+
+function itemVal(wd,key){ return (wd.items[key] && Number(wd.items[key].val)) || 0; }
+
+/* ============================================================
+   SIDEBAR RENDER
+   ============================================================ */
+function changeSidebarYear(delta){
+  DB.ui.sidebarYear += delta;
+  scheduleSave();
+  renderSidebar();
+}
+
+function toggleMonth(m){
+  DB.ui.openMonths[m] = !DB.ui.openMonths[m];
+  scheduleSave();
+  renderSidebar();
+}
+
+function selectWeek(key){
+  DB.ui.currentWeekKey = key;
+  DB.ui.viewMode = 'week';
+  scheduleSave();
+  renderSidebar();
+  renderMain();
+}
+
+function renderSidebar(){
+  document.getElementById('yrLabel').textContent = DB.ui.sidebarYear + '년';
+  const tree = document.getElementById('monthTree');
+  tree.innerHTML = '';
+  const y = DB.ui.sidebarYear;
+  for(let m=1;m<=12;m++){
+    const isOpen = !!DB.ui.openMonths[m];
+    const block = document.createElement('div');
+    block.className = 'month-block' + (isOpen ? ' open':'');
+
+    const head = document.createElement('div');
+    head.className = 'month-head';
+    head.onclick = ()=>toggleMonth(m);
+    head.innerHTML = '<span>'+m+'월</span><span class="car">▶</span>';
+    block.appendChild(head);
+
+    const wl = document.createElement('div');
+    wl.className = 'week-list';
+    const n = weeksInMonth(y,m);
+    for(let w=1; w<=n; w++){
+      const key = weekKey(y,m,w);
+      const agg = weekAllValues(key);
+      const totalVisit = Number(agg.grades.A||0)+Number(agg.grades.B||0)+Number(agg.grades.C||0)+Number(agg.grades.D||0);
+      const item = document.createElement('div');
+      item.className = 'week-item' + (DB.ui.currentWeekKey===key ? ' active':'');
+      item.onclick = ()=>selectWeek(key);
+      item.innerHTML = '<span>'+w+'주차 <span style="opacity:.6;font-size:10.5px;">('+weekRangeLabel(y,m,w)+')</span></span>' +
+                        (totalVisit>0 ? '<span class="cnt">'+totalVisit+'건</span>' : '');
+      wl.appendChild(item);
+    }
+    block.appendChild(wl);
+    tree.appendChild(block);
+  }
+}
+
+/* ============================================================
+   MAIN VIEW SWITCH
+   ============================================================ */
+function setMode(mode){
+  DB.ui.viewMode = mode;
+  scheduleSave();
+  renderMain();
+}
+
+function renderMain(){
+  document.querySelectorAll('.tab').forEach(t=>{
+    t.classList.toggle('active', t.dataset.mode===DB.ui.viewMode);
+  });
+  if(!DB.ui.currentWeekKey){
+    DB.ui.currentWeekKey = findCurrentWeekKey();
+  }
+  const area = document.getElementById('viewArea');
+  if(DB.ui.viewMode==='week') renderWeekView(area);
+  else if(DB.ui.viewMode==='month') renderMonthView(area);
+  else renderYearView(area);
+}
+
+/* ============================================================
+   AGENT TABS + SETTINGS PANEL (week view only)
+   ============================================================ */
+function renderAgentTabsHTML(agentId){
+  let h = '<div class="agent-tabs">';
+  h += '<div class="agent-tab'+(agentId==='ALL'?' active':'')+'" data-agent="ALL">전체</div>';
+  DB.config.agents.forEach(a=>{
+    h += '<div class="agent-tab'+(agentId===a.id?' active':'')+'" data-agent="'+escAttr(a.id)+'">'+esc(a.name)+'</div>';
+  });
+  h += '<div class="agent-settings-btn" id="agentSettingsBtn">⚙ 담당자 관리</div>';
+  h += '</div>';
+
+  if(DB.ui.showAgentSettings){
+    h += '<div class="agent-settings-panel">';
+    h += '<div class="agent-settings-title">담당자 관리 (추가 / 이름수정 / 삭제)</div>';
+    h += '<div class="agent-settings-list">';
+    if(DB.config.agents.length===0){
+      h += '<span style="font-size:12px;color:#93A0BE;">등록된 담당자가 없습니다. 아래에서 추가해주세요.</span>';
+    }
+    DB.config.agents.forEach(a=>{
+      h += '<div class="agent-settings-item">'
+         + '<input type="text" class="agent-rename-input" data-id="'+escAttr(a.id)+'" value="'+escAttr(a.name)+'">'
+         + '<button class="agent-remove-btn" data-id="'+escAttr(a.id)+'">✕</button></div>';
+    });
+    h += '</div>';
+    h += '<div class="agent-add-row"><input type="text" id="newAgentName" placeholder="담당자 이름 입력 후 Enter"><button id="addAgentBtn">+ 추가</button></div>';
+    h += '<div class="agent-settings-hint">담당자 이름을 클릭해 바로 수정할 수 있어요 (Enter 또는 클릭 해제 시 저장). 담당자를 삭제해도 이미 입력된 실적 데이터는 삭제되지 않고 "전체" 합계에 계속 반영됩니다.</div>';
+    h += '</div>';
+  }
+  return h;
+}
+
+function bindAgentControls(){
+  document.querySelectorAll('.agent-tab').forEach(t=>{
+    t.addEventListener('click', ()=> selectAgent(t.dataset.agent));
+  });
+  const gearBtn = document.getElementById('agentSettingsBtn');
+  if(gearBtn) gearBtn.addEventListener('click', toggleAgentSettings);
+  const addBtn = document.getElementById('addAgentBtn');
+  if(addBtn) addBtn.addEventListener('click', addAgent);
+  const newNameInput = document.getElementById('newAgentName');
+  if(newNameInput){
+    newNameInput.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); addAgent(); } });
+  }
+  document.querySelectorAll('.agent-remove-btn').forEach(b=>{
+    b.addEventListener('click', ()=> removeAgent(b.dataset.id));
+  });
+  document.querySelectorAll('.agent-rename-input').forEach(inp=>{
+    inp.addEventListener('keydown', e=>{
+      if(e.key==='Enter'){ e.preventDefault(); inp.blur(); }
+    });
+    inp.addEventListener('blur', ()=> renameAgent(inp.dataset.id, inp.value));
+  });
+}
+
+function selectAgent(id){
+  DB.ui.currentAgent = id;
+  scheduleSave();
+  renderMain();
+}
+function toggleAgentSettings(){
+  DB.ui.showAgentSettings = !DB.ui.showAgentSettings;
+  scheduleSave();
+  renderMain();
+}
+function addAgent(){
+  const input = document.getElementById('newAgentName');
+  const name = (input.value||'').trim();
+  if(!name) return;
+  const id = 'agent_'+Date.now()+'_'+Math.random().toString(36).slice(2,6);
+  DB.config.agents.push({id, name});
+  DB.ui.currentAgent = id;
+  markAgentsDirty();
+  scheduleSave();
+  renderMain();
+}
+function renameAgent(id, newName){
+  const a = DB.config.agents.find(x=>x.id===id);
+  if(!a) return;
+  const trimmed = (newName||'').trim();
+  if(!trimmed || trimmed===a.name){
+    renderMain(); // reset input to stored value if left blank/unchanged-with-whitespace
+    return;
+  }
+  a.name = trimmed;
+  markAgentsDirty();
+  renderMain();
+}
+async function removeAgent(id){
+  const a = DB.config.agents.find(x=>x.id===id);
+  if(!a) return;
+  if(!confirm('"'+a.name+'" 담당자를 목록에서 삭제할까요?\n(이미 입력된 실적 데이터는 삭제되지 않고 "전체" 합계에 계속 반영됩니다)')) return;
+  DB.config.agents = DB.config.agents.filter(x=>x.id!==id);
+  if(DB.ui.currentAgent===id) DB.ui.currentAgent = 'ALL';
+  scheduleSave();
+  renderMain();
+  try{
+    setStatus('저장 중...');
+    throwIf(await SB.from('agents').delete().eq('id', id));
+    setStatus('☁ 저장됨 ' + nowTime());
+  }catch(e){
+    console.error(e);
+    setStatus('⚠ 담당자 삭제 실패 - 새로고침 후 다시 시도해주세요');
+  }
+}
+
+/* ============================================================
+   WEEK VIEW
+   ============================================================ */
+function renderWeekView(area){
+  const key = DB.ui.currentWeekKey;
+  const [y,m,w] = key.split('-').map(Number);
+
+  if(DB.ui.currentAgent!=='ALL' && !DB.config.agents.find(a=>a.id===DB.ui.currentAgent)){
+    DB.ui.currentAgent = 'ALL';
+  }
+  const agentId = DB.ui.currentAgent;
+  const isAll = agentId === 'ALL';
+  const wd = isAll ? weekAllValues(key) : ensureAgentWeek(key, agentId);
+
+  const totalVisit = Number(wd.grades.A||0)+Number(wd.grades.B||0)+Number(wd.grades.C||0)+Number(wd.grades.D||0);
+  const contractVal = itemVal(wd,'contract');
+  const ro = isAll ? 'readonly' : ''; // read-only attribute applied to inputs/textareas in "전체" mode
+
+  let html = '';
+  html += renderAgentTabsHTML(agentId);
+
+  if(isAll){
+    html += '<div class="report-title">'+y+'년 '+m+'월 '+w+'주차 · 전체 영업 KPI 보고</div>';
+  }else{
+    html += '<div class="report-title editable" contenteditable="true" id="wkTitle">'+esc(wd.title)+'</div>';
+  }
+  html += '<div class="date-range">'+y+'년 '+m+'월 '+w+'주차 · '+weekRangeLabel(y,m,w)+' · 담당자: '+esc(agentDisplayName(agentId))+(isAll?' (자동 합산, 읽기전용)':'')+'</div>';
+
+  // summary strip
+  html += '<div class="summary-row">';
+  html += summaryBox('이번주 총 방문', totalVisit+'건');
+  html += summaryBox('계약 체결', contractVal+'건', true);
+  html += summaryBox('메타광고 인입', (wd.metaInbound.inbound||0)+'건');
+  html += summaryBox('가망업체 확보', itemVal(wd,'prospect')+'건');
+  html += '</div>';
+
+  // KPI table
+  html += '<div class="card"><h2>영업 KPI 실적</h2><div class="hint">이번주 실적을 입력하면 이번달·올해 누계가 자동으로 계산됩니다.</div>';
+  html += '<table class="kpi-table"><thead><tr>';
+  html += '<th style="width:20%">항목</th><th style="width:12%">목표</th><th style="width:10%">이번주 실적</th><th>비고</th><th style="width:9%">이번달 누계</th><th style="width:9%">올해 누계</th>';
+  html += '</tr></thead><tbody>';
+  DB.config.items.forEach((it,idx)=>{
+    const monthTotal = sumOverWeeksForAgent(y,m,agentId, d=>itemVal(d,it.key));
+    const yearTotal = sumOverMonthsForAgent(y,agentId, d=>itemVal(d,it.key));
+    html += '<tr>';
+    html += '<td><span class="editable" contenteditable="true" data-bind="itemLabel" data-idx="'+idx+'">'+esc(it.label)+'</span></td>';
+    html += '<td><span class="editable" contenteditable="true" data-bind="itemTarget" data-idx="'+idx+'">'+esc(it.target)+'</span></td>';
+    const isMetaResponse = it.key==='metaResponse';
+    const mrValue = isMetaResponse ? (wd.metaInbound.inbound||0) : (wd.items[it.key]?wd.items[it.key].val:0);
+    const mrRo = isMetaResponse ? 'readonly title="메타광고 인입 건수와 자동 연동됩니다"' : ro;
+    html += '<td><input type="number" '+mrRo+' data-bind="itemVal" data-key="'+it.key+'" value="'+ mrValue +'"></td>';
+    html += '<td><textarea class="note-input" rows="1" '+ro+' data-bind="itemNote" data-key="'+it.key+'" placeholder="'+(isAll?'담당자별 비고 (읽기전용)':'특이사항 입력')+'">'+esc(wd.items[it.key]?wd.items[it.key].note:'')+'</textarea></td>';
+    html += '<td class="agg">'+monthTotal+'<small>누계</small></td>';
+    html += '<td class="agg">'+yearTotal+'<small>누계</small></td>';
+    html += '</tr>';
+  });
+  html += '</tbody></table></div>';
+
+  // grade section
+  html += '<div class="card"><h2>이번주 방문업체 등급 분류</h2><div class="hint">현장 방문한 업체를 등급별로 분류해 숫자로 기록합니다.</div>';
+  html += '<div class="grade-grid">';
+  ['A','B','C','D'].forEach(g=>{
+    const monthTotal = sumOverWeeksForAgent(y,m,agentId, d=>Number(d.grades[g]||0));
+    const yearTotal = sumOverMonthsForAgent(y,agentId, d=>Number(d.grades[g]||0));
+    html += '<div class="grade-card '+g+'">';
+    html += '<div class="g-top"><span class="g-name">'+g+ (g==='D' ? ' (Drop)':'') +'</span>';
+    html += '<input type="number" '+ro+' data-bind="grade" data-key="'+g+'" value="'+(wd.grades[g]||0)+'"></div>';
+    html += '<div class="g-def editable" contenteditable="true" data-bind="gradeDef" data-key="'+g+'">'+esc(DB.config.gradeDefs[g])+'</div>';
+    html += '<div class="grade-agg"><span>이번달 '+monthTotal+'</span><span>올해 '+yearTotal+'</span></div>';
+    html += '</div>';
+  });
+  html += '</div>';
+  html += '<textarea class="note-input" rows="1" '+ro+' style="margin-top:4px;" data-bind="gradeNote" placeholder="'+(isAll?'담당자별 비고 (읽기전용)':'등급 분류 관련 특이사항')+'">'+esc(wd.grades.note||'')+'</textarea>';
+  html += '</div>';
+
+  // meta inbound section
+  const monthInbound = sumOverWeeksForAgent(y,m,agentId, d=>Number(d.metaInbound.inbound||0));
+  const yearInbound = sumOverMonthsForAgent(y,agentId, d=>Number(d.metaInbound.inbound||0));
+  const monthPhone = sumOverWeeksForAgent(y,m,agentId, d=>Number(d.metaInbound.phoneGuide||0));
+  const monthMet = sumOverWeeksForAgent(y,m,agentId, d=>Number(d.metaInbound.met||0));
+  const monthToMeet = sumOverWeeksForAgent(y,m,agentId, d=>Number(d.metaInbound.toMeet||0));
+  html += '<div class="card"><h2>메타광고(M) 인입 현황</h2><div class="hint">이번주 메타광고로 들어온 문의를 유선통화안내 / 미팅 완료 / 미팅 예정으로 구분합니다.</div>';
+  html += '<div class="meta-box">';
+  html += metaBox('인입 건수','inbound',wd.metaInbound.inbound, monthInbound, yearInbound, ro);
+  html += metaBox('유선통화안내','phoneGuide',wd.metaInbound.phoneGuide, monthPhone, null, ro);
+  html += metaBox('미팅 완료','met',wd.metaInbound.met, monthMet, null, ro);
+  html += metaBox('미팅 예정','toMeet',wd.metaInbound.toMeet, monthToMeet, null, ro);
+  html += '</div>';
+  html += '<textarea class="note-input" rows="1" '+ro+' style="margin-top:12px;" data-bind="metaNote" placeholder="'+(isAll?'담당자별 비고 (읽기전용)':'메타광고 관련 특이사항')+'">'+esc(wd.metaInbound.note||'')+'</textarea>';
+  html += '</div>';
+
+  area.innerHTML = html;
+  bindAgentControls();
+  bindWeekEvents(isAll);
+}
+
+function summaryBox(label, value, alt){
+  return '<div class="sum-box'+(alt?' alt':'')+'"><div class="lbl">'+label+'</div><div class="val">'+value+'</div></div>';
+}
+function metaBox(label, key, val, monthTotal, yearTotal, ro){
+  let h = '<div class="meta-item"><div class="lbl">'+label+'</div>';
+  h += '<input type="number" '+(ro||'')+' data-bind="meta" data-key="'+key+'" value="'+(val||0)+'">';
+  h += '<div class="sub-agg">이번달 누계 '+monthTotal + (yearTotal!==null? ' · 올해 누계 '+yearTotal : '') +'</div>';
+  h += '</div>';
+  return h;
+}
+
+function autoGrow(el){
+  el.style.height = 'auto';
+  el.style.height = el.scrollHeight + 'px';
+}
+
+function bindWeekEvents(isAll){
+  const key = DB.ui.currentWeekKey;
+  const agentId = DB.ui.currentAgent;
+
+  // label/target/grade-def are global config, editable in both ALL and per-agent views
+  document.querySelectorAll('[data-bind="itemLabel"]').forEach(el=>{
+    el.addEventListener('input', ()=>{ DB.config.items[el.dataset.idx].label = el.textContent; markConfigDirty(); });
+  });
+  document.querySelectorAll('[data-bind="itemTarget"]').forEach(el=>{
+    el.addEventListener('input', ()=>{ DB.config.items[el.dataset.idx].target = el.textContent; markConfigDirty(); });
+  });
+  document.querySelectorAll('[data-bind="gradeDef"]').forEach(el=>{
+    el.addEventListener('input', ()=>{ DB.config.gradeDefs[el.dataset.key] = el.textContent; markConfigDirty(); });
+  });
+
+  // auto-grow all note textareas regardless of mode (so combined "전체" notes display fully too)
+  document.querySelectorAll('textarea.note-input').forEach(autoGrow);
+
+  if(isAll){ editingRecord = null; return; } // "전체" fields are readonly - nothing else to bind
+
+  editingRecord = key+'|'+agentId;
+  const wd = ensureAgentWeek(key, agentId);
+  const touch = ()=> markWeekDirty(key, agentId);
+
+  const titleEl = document.getElementById('wkTitle');
+  if(titleEl) titleEl.addEventListener('input', ()=>{ wd.title = titleEl.textContent; touch(); });
+
+  document.querySelectorAll('[data-bind="itemVal"]').forEach(el=>{
+    el.addEventListener('input', ()=>{
+      wd.items[el.dataset.key].val = Number(el.value)||0;
+      touch();
+      refreshAggregates();
+      renderSidebar();
+    });
+  });
+  document.querySelectorAll('[data-bind="itemNote"]').forEach(el=>{
+    el.addEventListener('input', ()=>{ wd.items[el.dataset.key].note = el.value; touch(); autoGrow(el); });
+  });
+  document.querySelectorAll('[data-bind="grade"]').forEach(el=>{
+    el.addEventListener('input', ()=>{
+      wd.grades[el.dataset.key] = Number(el.value)||0;
+      touch();
+      refreshAggregates();
+      renderSidebar();
+    });
+  });
+  const gNote = document.querySelector('[data-bind="gradeNote"]');
+  if(gNote) gNote.addEventListener('input', ()=>{ wd.grades.note = gNote.value; touch(); autoGrow(gNote); });
+
+  document.querySelectorAll('[data-bind="meta"]').forEach(el=>{
+    el.addEventListener('input', ()=>{
+      wd.metaInbound[el.dataset.key] = Number(el.value)||0;
+      if(el.dataset.key==='inbound'){
+        wd.items.metaResponse.val = wd.metaInbound.inbound; // auto-sync KPI item with inbound count
+      }
+      touch();
+      refreshAggregates();
+      renderSidebar();
+    });
+  });
+  const mNote = document.querySelector('[data-bind="metaNote"]');
+  if(mNote) mNote.addEventListener('input', ()=>{ wd.metaInbound.note = mNote.value; touch(); autoGrow(mNote); });
+}
+
+// lightweight refresh of computed numbers without full re-render (keeps input focus)
+function refreshAggregates(){
+  const key = DB.ui.currentWeekKey;
+  const [y,m] = key.split('-').map(Number);
+  const agentId = DB.ui.currentAgent;
+  if(agentId==='ALL') return; // "전체" inputs are readonly, so this is never actually reached
+  const wd = ensureAgentWeek(key, agentId);
+
+  const totalVisit = Number(wd.grades.A||0)+Number(wd.grades.B||0)+Number(wd.grades.C||0)+Number(wd.grades.D||0);
+  const sumBoxes = document.querySelectorAll('.sum-box .val');
+  if(sumBoxes[0]) sumBoxes[0].textContent = totalVisit+'건';
+  if(sumBoxes[1]) sumBoxes[1].textContent = itemVal(wd,'contract')+'건';
+  if(sumBoxes[2]) sumBoxes[2].textContent = (wd.metaInbound.inbound||0)+'건';
+  if(sumBoxes[3]) sumBoxes[3].textContent = itemVal(wd,'prospect')+'건';
+
+  document.querySelectorAll('table.kpi-table tbody tr').forEach((tr,idx)=>{
+    const it = DB.config.items[idx];
+    if(it.key==='metaResponse'){
+      const valInput = tr.querySelector('[data-bind="itemVal"]');
+      if(valInput) valInput.value = wd.metaInbound.inbound||0;
+    }
+    const monthTotal = sumOverWeeksForAgent(y,m,agentId, d=>itemVal(d,it.key));
+    const yearTotal = sumOverMonthsForAgent(y,agentId, d=>itemVal(d,it.key));
+    const aggs = tr.querySelectorAll('.agg');
+    aggs[0].childNodes[0].textContent = monthTotal;
+    aggs[1].childNodes[0].textContent = yearTotal;
+  });
+
+  document.querySelectorAll('.grade-card').forEach(card=>{
+    const g = card.classList[1];
+    const monthTotal = sumOverWeeksForAgent(y,m,agentId, d=>Number(d.grades[g]||0));
+    const yearTotal = sumOverMonthsForAgent(y,agentId, d=>Number(d.grades[g]||0));
+    const agg = card.querySelector('.grade-agg');
+    agg.innerHTML = '<span>이번달 '+monthTotal+'</span><span>올해 '+yearTotal+'</span>';
+  });
+
+  const monthInbound = sumOverWeeksForAgent(y,m,agentId, d=>Number(d.metaInbound.inbound||0));
+  const yearInbound = sumOverMonthsForAgent(y,agentId, d=>Number(d.metaInbound.inbound||0));
+  const monthPhone = sumOverWeeksForAgent(y,m,agentId, d=>Number(d.metaInbound.phoneGuide||0));
+  const monthMet = sumOverWeeksForAgent(y,m,agentId, d=>Number(d.metaInbound.met||0));
+  const monthToMeet = sumOverWeeksForAgent(y,m,agentId, d=>Number(d.metaInbound.toMeet||0));
+  const metaSubs = document.querySelectorAll('.meta-item .sub-agg');
+  if(metaSubs[0]) metaSubs[0].textContent = '이번달 누계 '+monthInbound+' · 올해 누계 '+yearInbound;
+  if(metaSubs[1]) metaSubs[1].textContent = '이번달 누계 '+monthPhone;
+  if(metaSubs[2]) metaSubs[2].textContent = '이번달 누계 '+monthMet;
+  if(metaSubs[3]) metaSubs[3].textContent = '이번달 누계 '+monthToMeet;
+}
+
+/* ============================================================
+   MONTH VIEW  (always "전체" auto-sum — no per-agent screen)
+   ============================================================ */
+function renderMonthView(area){
+  editingRecord = null;
+  const cur = DB.ui.currentWeekKey.split('-').map(Number);
+  const y = cur[0], m = cur[1];
+
+  let html = '<div class="report-title">월간 현황</div><div class="date-range">주차별 실적을 한눈에 확인하고, 이 달의 합계를 자동으로 계산합니다. (전체 담당자 자동 합산)</div>';
+  html += '<div class="picker-row">';
+  html += '<select id="monthYearSel">'+yearOptions(y)+'</select>';
+  html += '<select id="monthMonthSel">'+monthOptions(m)+'</select>';
+  html += '</div>';
+
+  const n = weeksInMonth(y,m);
+
+  // KPI items table
+  html += '<div class="card"><h2>KPI 항목별 주차 실적</h2>';
+  html += '<table class="agg-table"><thead><tr><th style="text-align:left;">항목</th>';
+  for(let w=1; w<=n; w++) html += '<th>'+w+'주차</th>';
+  html += '<th>월 합계</th></tr></thead><tbody>';
+  DB.config.items.forEach(it=>{
+    html += '<tr><td class="rowlabel">'+esc(it.label)+'</td>';
+    let total = 0;
+    for(let w=1; w<=n; w++){
+      const data = weekAllValues(weekKey(y,m,w));
+      const v = itemVal(data,it.key);
+      total += v;
+      html += '<td>'+v+'</td>';
+    }
+    html += '<td style="font-weight:800;color:var(--navy);">'+total+'</td></tr>';
+  });
+  html += '</tbody></table></div>';
+
+  // grade table
+  html += '<div class="card"><h2>등급 분류 주차별 현황</h2>';
+  html += '<table class="agg-table"><thead><tr><th style="text-align:left;">등급</th>';
+  for(let w=1; w<=n; w++) html += '<th>'+w+'주차</th>';
+  html += '<th>월 합계</th></tr></thead><tbody>';
+  ['A','B','C','D'].forEach(g=>{
+    html += '<tr><td class="rowlabel">'+g+'</td>';
+    let total=0;
+    for(let w=1; w<=n; w++){
+      const data = weekAllValues(weekKey(y,m,w));
+      const v = Number(data.grades[g]||0);
+      total += v;
+      html += '<td>'+v+'</td>';
+    }
+    html += '<td style="font-weight:800;color:var(--navy);">'+total+'</td></tr>';
+  });
+  html += '<tr class="total-row"><td class="rowlabel">주간 총 방문</td>';
+  let grand = 0;
+  for(let w=1; w<=n; w++){
+    const data = weekAllValues(weekKey(y,m,w));
+    const t = Number(data.grades.A||0)+Number(data.grades.B||0)+Number(data.grades.C||0)+Number(data.grades.D||0);
+    grand += t;
+    html += '<td>'+t+'</td>';
+  }
+  html += '<td>'+grand+'</td></tr>';
+  html += '</tbody></table></div>';
+
+  // meta table
+  html += '<div class="card"><h2>메타광고 인입 주차별 현황</h2>';
+  html += '<table class="agg-table"><thead><tr><th style="text-align:left;">구분</th>';
+  for(let w=1; w<=n; w++) html += '<th>'+w+'주차</th>';
+  html += '<th>월 합계</th></tr></thead><tbody>';
+  [['inbound','인입 건수'],['phoneGuide','유선통화안내'],['met','미팅 완료'],['toMeet','미팅 예정']].forEach(pair=>{
+    html += '<tr><td class="rowlabel">'+pair[1]+'</td>';
+    let total=0;
+    for(let w=1; w<=n; w++){
+      const data = weekAllValues(weekKey(y,m,w));
+      const v = Number(data.metaInbound[pair[0]]||0);
+      total += v;
+      html += '<td>'+v+'</td>';
+    }
+    html += '<td style="font-weight:800;color:var(--navy);">'+total+'</td></tr>';
+  });
+  html += '</tbody></table></div>';
+
+  area.innerHTML = html;
+  document.getElementById('monthYearSel').addEventListener('change', e=>{
+    const ny = Number(e.target.value);
+    DB.ui.currentWeekKey = weekKey(ny, 1, 1);
+    scheduleSave(); renderMain(); renderSidebar();
+  });
+  document.getElementById('monthMonthSel').addEventListener('change', e=>{
+    const nm = Number(e.target.value);
+    DB.ui.currentWeekKey = weekKey(y, nm, 1);
+    scheduleSave(); renderMain(); renderSidebar();
+  });
+}
+
+/* ============================================================
+   YEAR VIEW  (always "전체" auto-sum — no per-agent screen)
+   ============================================================ */
+function renderYearView(area){
+  editingRecord = null;
+  const y = DB.ui.currentWeekKey.split('-').map(Number)[0];
+
+  let html = '<div class="report-title">연간 현황</div><div class="date-range">월별 합계와 연간 누계를 확인합니다. (전체 담당자 자동 합산) · <b>연 합계 숫자를 클릭하면 담당자별 실적을 볼 수 있어요</b></div>';
+  html += '<div class="picker-row"><select id="yearSel">'+yearOptions(y)+'</select></div>';
+
+  html += '<div class="card"><h2>KPI 항목별 월간 합계</h2>';
+  html += '<table class="agg-table"><thead><tr><th style="text-align:left;">항목</th>';
+  for(let m=1;m<=12;m++) html += '<th>'+m+'월</th>';
+  html += '<th>연 합계</th></tr></thead><tbody>';
+  DB.config.items.forEach(it=>{
+    html += '<tr><td class="rowlabel">'+esc(it.label)+'</td>';
+    let total=0;
+    for(let m=1;m<=12;m++){
+      const v = sumOverWeeksForAgent(y,m,'ALL', d=>itemVal(d,it.key));
+      total += v;
+      html += '<td>'+v+'</td>';
+    }
+    html += '<td class="yearsum-clickable" data-breakdown-key="'+escAttr(it.key)+'" data-breakdown-label="'+escAttr(it.label)+'" style="font-weight:800;color:var(--navy);">'+total+'</td></tr>';
+  });
+  html += '</tbody></table></div>';
+
+  html += '<div class="card"><h2>등급 분류 월별 현황</h2>';
+  html += '<table class="agg-table"><thead><tr><th style="text-align:left;">등급</th>';
+  for(let m=1;m<=12;m++) html += '<th>'+m+'월</th>';
+  html += '<th>연 합계</th></tr></thead><tbody>';
+  ['A','B','C','D'].forEach(g=>{
+    html += '<tr><td class="rowlabel">'+g+'</td>';
+    let total=0;
+    for(let m=1;m<=12;m++){
+      const v = sumOverWeeksForAgent(y,m,'ALL', d=>Number(d.grades[g]||0));
+      total += v;
+      html += '<td>'+v+'</td>';
+    }
+    html += '<td style="font-weight:800;color:var(--navy);">'+total+'</td></tr>';
+  });
+  html += '<tr class="total-row"><td class="rowlabel">월별 총 방문</td>';
+  let grand=0;
+  for(let m=1;m<=12;m++){
+    const v = sumOverWeeksForAgent(y,m,'ALL', d=>Number(d.grades.A||0)+Number(d.grades.B||0)+Number(d.grades.C||0)+Number(d.grades.D||0));
+    grand+=v;
+    html += '<td>'+v+'</td>';
+  }
+  html += '<td>'+grand+'</td></tr>';
+  html += '</tbody></table></div>';
+
+  html += '<div class="card"><h2>메타광고 인입 월별 현황</h2>';
+  html += '<table class="agg-table"><thead><tr><th style="text-align:left;">구분</th>';
+  for(let m=1;m<=12;m++) html += '<th>'+m+'월</th>';
+  html += '<th>연 합계</th></tr></thead><tbody>';
+  [['inbound','인입 건수'],['phoneGuide','유선통화안내'],['met','미팅 완료'],['toMeet','미팅 예정']].forEach(pair=>{
+    html += '<tr><td class="rowlabel">'+pair[1]+'</td>';
+    let total=0;
+    for(let m=1;m<=12;m++){
+      const v = sumOverWeeksForAgent(y,m,'ALL', d=>Number(d.metaInbound[pair[0]]||0));
+      total += v;
+      html += '<td>'+v+'</td>';
+    }
+    html += '<td style="font-weight:800;color:var(--navy);">'+total+'</td></tr>';
+  });
+  html += '</tbody></table></div>';
+
+  area.innerHTML = html;
+  document.getElementById('yearSel').addEventListener('change', e=>{
+    const ny = Number(e.target.value);
+    DB.ui.currentWeekKey = weekKey(ny,1,1);
+    scheduleSave(); renderMain(); renderSidebar();
+  });
+  area.querySelectorAll('.yearsum-clickable').forEach(td=>{
+    td.addEventListener('click', ()=>{
+      showBreakdownModal(y, td.dataset.breakdownKey, td.dataset.breakdownLabel);
+    });
+  });
+}
+
+// year-total-by-agent breakdown: scans every week bucket for the given year
+// and sums each agent's value for the requested item key
+function getYearBreakdownByAgent(y, itemKey){
+  const totals = {};
+  Object.keys(DB.weeks).forEach(key=>{
+    const wy = Number(key.split('-')[0]);
+    if(wy !== y) return;
+    const wk = DB.weeks[key];
+    if(!wk || !wk.agents) return;
+    Object.keys(wk.agents).forEach(id=>{
+      const rec = wk.agents[id].items[itemKey];
+      const v = Number(rec && rec.val || 0);
+      if(v===0 && !(id in totals)) totals[id] = 0;
+      totals[id] = (totals[id]||0) + v;
+    });
+  });
+  return Object.keys(totals)
+    .map(id=>({id, name: agentDisplayName(id), count: totals[id]}))
+    .filter(r=>r.count>0)
+    .sort((a,b)=> b.count - a.count);
+}
+
+function showBreakdownModal(y, itemKey, itemLabel){
+  const rows = getYearBreakdownByAgent(y, itemKey);
+  let rowsHtml = '';
+  if(rows.length===0){
+    rowsHtml = '<div class="breakdown-row bd-empty">실적이 없습니다</div>';
+  }else{
+    rows.forEach(r=>{
+      rowsHtml += '<div class="breakdown-row"><span class="bd-name">'+esc(r.name)+'</span><span class="bd-count">'+r.count+'건</span></div>';
+    });
+  }
+  closeBreakdownModal();
+  const backdrop = document.createElement('div');
+  backdrop.className = 'breakdown-backdrop';
+  backdrop.id = 'breakdownBackdrop';
+  backdrop.innerHTML = '<div class="breakdown-modal">'
+    + '<h3>'+esc(itemLabel)+' · 담당자별 실적</h3>'
+    + '<div class="bd-sub">'+y+'년 연간 누계 기준</div>'
+    + rowsHtml
+    + '<button class="breakdown-close" id="breakdownCloseBtn">닫기</button>'
+    + '</div>';
+  document.body.appendChild(backdrop);
+  backdrop.addEventListener('click', e=>{ if(e.target===backdrop) closeBreakdownModal(); });
+  document.getElementById('breakdownCloseBtn').addEventListener('click', closeBreakdownModal);
+}
+function closeBreakdownModal(){
+  const el = document.getElementById('breakdownBackdrop');
+  if(el) el.remove();
+}
+
+function yearOptions(sel){
+  let h='';
+  for(let yy=sel-3; yy<=sel+3; yy++){
+    h += '<option value="'+yy+'" '+(yy===sel?'selected':'')+'>'+yy+'년</option>';
+  }
+  return h;
+}
+function monthOptions(sel){
+  let h='';
+  for(let mm=1; mm<=12; mm++){
+    h += '<option value="'+mm+'" '+(mm===sel?'selected':'')+'>'+mm+'월</option>';
+  }
+  return h;
+}
+
+/* ============================================================
+   UTIL
+   ============================================================ */
+function esc(str){
+  if(str===undefined||str===null) return '';
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function escAttr(str){
+  if(str===undefined||str===null) return '';
+  return String(str).replace(/&/g,'&amp;').replace(/"/g,'&quot;');
+}
+function chunk(arr, size){
+  const out=[];
+  for(let i=0;i<arr.length;i+=size) out.push(arr.slice(i,i+size));
+  return out;
+}
+
+/* ============================================================
+   EXPORT / IMPORT / RESET
+   ============================================================ */
+function exportData(){
+  const snapshot = {
+    config: {
+      items: DB.config.items,
+      gradeDefs: DB.config.gradeDefs,
+      agents: DB.config.agents
+    },
+    weeks: DB.weeks,
+    ui: DB.ui,
+    meta: DB.meta
+  };
+  const blob = new Blob([JSON.stringify(snapshot, null, 2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  const d = new Date();
+  a.download = 'frontx_kpi_backup_'+d.getFullYear()+pad(d.getMonth()+1)+pad(d.getDate())+'.json';
+  a.click();
+}
+
+/* 예전 (담당자 구분 없던) 백업 형식을 'legacy' 담당자로 옮겨 담는다 */
+function migrateLegacyWeeks(parsed){
+  let migrated = false;
+  Object.keys(parsed.weeks||{}).forEach(key=>{
+    const wk = parsed.weeks[key];
+    if(wk && wk.items && !wk.agents){
+      parsed.weeks[key] = { agents: { legacy: {
+        title: wk.title, items: wk.items, grades: wk.grades, metaInbound: wk.metaInbound
+      } } };
+      migrated = true;
+    }
+  });
+  if(migrated && !(parsed.config.agents||[]).find(a=>a.id==='legacy')){
+    parsed.config.agents = parsed.config.agents || [];
+    parsed.config.agents.unshift({id:'legacy', name:'이전 데이터'});
+  }
+  return parsed;
+}
+
+// 백업 JSON을 읽어 Supabase에 통째로 밀어 넣는다 (기존 데이터와 병합/덮어쓰기)
+function importData(e){
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = async evt=>{
+    let parsed;
+    try{
+      parsed = JSON.parse(evt.target.result);
+    }catch(err){
+      alert('파일을 읽을 수 없습니다. JSON 백업 파일인지 확인해주세요.');
+      return;
+    }
+    if(!parsed.weeks || !parsed.config){
+      alert('KPI 백업 파일 형식이 아닙니다.');
+      return;
+    }
+    if(!confirm('백업 파일의 내용을 Supabase에 업로드합니다.\n같은 주차·담당자 데이터는 백업 파일 내용으로 덮어써집니다. 계속할까요?')) return;
+
+    migrateLegacyWeeks(parsed);
+    const items = (parsed.config.items && parsed.config.items.length) ? parsed.config.items : DEFAULT_ITEMS;
+
+    try{
+      setStatus('업로드 중... (1/3 설정)');
+      throwIf(await SB.from('app_config').upsert({
+        id: 1,
+        title: (parsed.meta && parsed.meta.title) || DB.meta.title,
+        subtitle: (parsed.meta && parsed.meta.subtitle) || DB.meta.subtitle,
+        items: items,
+        grade_defs: parsed.config.gradeDefs || DEFAULT_GRADE_DEFS
+      }));
+
+      setStatus('업로드 중... (2/3 담당자)');
+      const agents = parsed.config.agents || [];
+      if(agents.length){
+        throwIf(await SB.from('agents').upsert(
+          agents.map((a,i)=>({id:a.id, name:a.name, sort_order:i}))
+        ));
+      }
+
+      const rows = [];
+      Object.keys(parsed.weeks).forEach(wkKey=>{
+        const bucket = parsed.weeks[wkKey];
+        if(!bucket || !bucket.agents) return;
+        Object.keys(bucket.agents).forEach(agentId=>{
+          const wd = fillMissingItemKeys(bucket.agents[agentId], items);
+          rows.push({
+            week_key: wkKey,
+            agent_id: agentId,
+            title: wd.title || '',
+            items: wd.items,
+            grades: wd.grades,
+            meta_inbound: wd.metaInbound
+          });
+        });
+      });
+
+      const batches = chunk(rows, 200);
+      for(let i=0;i<batches.length;i++){
+        setStatus('업로드 중... (3/3 실적 '+(i+1)+'/'+batches.length+')');
+        throwIf(await SB.from('week_entries').upsert(batches[i]));
+      }
+
+      DB = await loadDB();
+      applyMetaToSidebar();
+      renderSidebar();
+      renderMain();
+      setStatus('☁ 업로드 완료 ' + nowTime());
+      alert('백업 파일 '+rows.length+'건을 Supabase에 업로드했습니다.');
+    }catch(err){
+      console.error(err);
+      setStatus('⚠ 업로드 실패');
+      alert('업로드 중 오류가 발생했습니다.\n' + (err.message || err));
+    }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+}
+
+async function resetAll(){
+  if(!confirm('Supabase에 저장된 모든 KPI 데이터를 삭제합니다.\n되돌릴 수 없습니다. 계속할까요?')) return;
+  if(!confirm('정말 삭제할까요?\n삭제 전에 "백업 파일로 내보내기"를 먼저 실행하시는 것을 권장합니다.')) return;
+  try{
+    setStatus('삭제 중...');
+    throwIf(await SB.from('week_entries').delete().neq('week_key','__none__'));
+    throwIf(await SB.from('agents').delete().neq('id','__none__'));
+    throwIf(await SB.from('app_config').update({
+      items: DEFAULT_ITEMS,
+      grade_defs: DEFAULT_GRADE_DEFS
+    }).eq('id',1));
+    localStorage.removeItem(UI_KEY);
+    DB = await loadDB();
+    applyMetaToSidebar();
+    renderSidebar();
+    renderMain();
+    setStatus('초기화 완료 ' + nowTime());
+  }catch(e){
+    console.error(e);
+    setStatus('⚠ 초기화 실패');
+    alert('초기화 중 오류가 발생했습니다.\n' + (e.message || e));
+  }
+}
+
+/* ============================================================
+   AUTH
+   ============================================================ */
+function authMsg(text, cls){
+  const el = document.getElementById('authMsg');
+  el.className = 'auth-msg' + (cls ? ' '+cls : '');
+  el.innerHTML = text;
+}
+
+function configLooksUnset(){
+  const c = window.SUPABASE_CONFIG;
+  return !c || !c.url || c.url.indexOf('YOUR-PROJECT-REF') !== -1
+           || !c.anonKey || c.anonKey.indexOf('YOUR-ANON') !== -1;
+}
+
+async function signOut(){
+  try{ await SB.auth.signOut(); }catch(e){}
+  location.reload();
+}
+
+function showApp(user){
+  CURRENT_USER = user;
+  document.getElementById('authGate').style.display = 'none';
+  document.getElementById('appRoot').style.display = 'flex';
+  const who = document.getElementById('whoami');
+  if(who) who.textContent = user.email || '';
+}
+
+function applyMetaToSidebar(){
+  document.getElementById('sbTitle').textContent = DB.meta.title;
+  document.getElementById('sbSub').textContent = DB.meta.subtitle;
+}
+
+async function startApp(user){
+  showApp(user);
+  setStatus('불러오는 중...');
+  try{
+    DB = await loadDB();
+  }catch(e){
+    console.error(e);
+    setStatus('⚠ 불러오기 실패');
+    alert('데이터를 불러오지 못했습니다.\nSupabase에서 schema.sql 을 실행했는지 확인해주세요.\n\n' + (e.message || e));
+    return;
+  }
+  applyMetaToSidebar();
+
+  document.getElementById('sbTitle').addEventListener('input', e=>{
+    DB.meta.title = e.target.textContent; markConfigDirty();
+  });
+  document.getElementById('sbSub').addEventListener('input', e=>{
+    DB.meta.subtitle = e.target.textContent; markConfigDirty();
+  });
+
+  if(!DB.ui.currentWeekKey) DB.ui.currentWeekKey = findCurrentWeekKey();
+  const [cy,cm] = DB.ui.currentWeekKey.split('-').map(Number);
+  DB.ui.sidebarYear = DB.ui.sidebarYear || cy;
+  DB.ui.openMonths = DB.ui.openMonths || {};
+  DB.ui.openMonths[cm] = true;
+  DB.ui.currentAgent = DB.ui.currentAgent || 'ALL';
+  scheduleSave();
+
+  renderSidebar();
+  renderMain();
+  subscribeRealtime();
+  setStatus('☁ 연결됨 · 자동 저장 중');
+}
+
+async function bootstrap(){
+  if(configLooksUnset()){
+    authMsg('⚠ Supabase 연결 정보가 아직 설정되지 않았습니다.<br>' +
+            '<code>config.js</code> 파일을 열어 Project URL 과 anon key 를 넣어주세요.', 'err');
+    document.getElementById('authBtn').disabled = true;
+    return;
+  }
+
+  SB = window.supabase.createClient(window.SUPABASE_CONFIG.url, window.SUPABASE_CONFIG.anonKey);
+
+  const { data: { session } } = await SB.auth.getSession();
+  if(session && session.user){
+    startApp(session.user);
+    return;
+  }
+
+  document.getElementById('authForm').addEventListener('submit', async e=>{
+    e.preventDefault();
+    const btn = document.getElementById('authBtn');
+    btn.disabled = true;
+    authMsg('로그인 중...');
+    const email = document.getElementById('authEmail').value.trim();
+    const password = document.getElementById('authPw').value;
+    const { data, error } = await SB.auth.signInWithPassword({ email, password });
+    if(error){
+      btn.disabled = false;
+      authMsg('로그인 실패: ' + error.message, 'err');
+      return;
+    }
+    authMsg('로그인 성공', 'ok');
+    startApp(data.user);
+  });
+}
+
+// 창을 닫기 전에 아직 저장 안 된 변경이 있으면 즉시 밀어 넣기 시도
+window.addEventListener('beforeunload', ()=>{
+  if(pending.config || pending.agents || pending.weeks.size > 0){
+    clearTimeout(flushTimer);
+    flushPending();
+  }
+});
+
+bootstrap();
+</script>
+</body>
+</html>

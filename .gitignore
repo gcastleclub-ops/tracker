@@ -1,0 +1,7 @@
+node_modules/
+.DS_Store
+Thumbs.db
+*.log
+
+# 로컬 백업 JSON은 커밋하지 않습니다 (실적 데이터가 그대로 들어있습니다)
+frontx_kpi_backup_*.json
