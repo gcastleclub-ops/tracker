@@ -59,33 +59,30 @@ window.SUPABASE_CONFIG = {
 
 ## 4. GitHub에 올리고 Pages 켜기
 
-GitHub에서 새 저장소를 하나 만든 뒤(예: `frontx-kpi-tracker`), 이 폴더에서:
+저장소: https://github.com/gcastleclub-ops/tracker (연결 완료)
 
 ```bash
-git init
-git add .
-git commit -m "FRONT-X 주간 KPI 트래커 - Supabase 연동"
-git branch -M main
-git remote add origin https://github.com/<본인계정>/frontx-kpi-tracker.git
 git push -u origin main
 ```
+
+첫 push에서는 Git Credential Manager가 브라우저 로그인 창을 띄웁니다. 한 번만 인증하면 이후에는 저장됩니다.
 
 그다음 저장소 **Settings → Pages**
 
 - Source: **Deploy from a branch**
 - Branch: **main** / **/ (root)** → Save
 
-1~2분 뒤 `https://<본인계정>.github.io/frontx-kpi-tracker/` 로 접속됩니다.
+1~2분 뒤 https://gcastleclub-ops.github.io/tracker/ 로 접속됩니다.
 
-> 저장소를 **Private**으로 두어도 GitHub Pages는 공개 URL로 서비스됩니다(유료 플랜은 비공개 Pages 지원). 어차피 데이터는 로그인해야 보이므로 실적이 노출되지는 않습니다.
+> 저장소가 Public이라 `config.js`의 anon 키는 누구나 볼 수 있지만, 이는 설계상 정상입니다. RLS 정책이 로그인하지 않은 요청의 조회·수정을 모두 차단합니다(익명 쓰기 시도 시 `42501` 반환 확인 완료). `service_role` 키만 저장소에 넣지 마세요.
 
 ### Supabase에 도메인 등록
 
-Supabase **Authentication → URL Configuration → Site URL** 에 위 Pages 주소를 넣어두세요.
+Supabase **Authentication → URL Configuration → Site URL** 에 `https://gcastleclub-ops.github.io/tracker/` 를 넣어두세요.
 
 ## 5. 기존 데이터 옮기기
 
-1. Pages 주소로 접속 → 로그인
+1. https://gcastleclub-ops.github.io/tracker/ 접속 → 로그인
 2. 좌측 하단 **⬆ 백업 파일 불러오기**
 3. `frontx_kpi_backup_20260724.json` 선택 → 확인
 
