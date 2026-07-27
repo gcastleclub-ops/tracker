@@ -189,17 +189,12 @@ values (
 on conflict (id) do nothing;
 
 -- ============================================================
--- 10. 초기 세팅 — 아래를 필요에 맞게 고쳐 "따로" 실행하세요
+-- 10. 다음 단계 — 권한(멤버) 설정
 -- ============================================================
--- (1) 먼저 Authentication → Users 에서 관리자/담당자 계정을 만든 뒤,
+-- 이 파일에는 표/정책만 있고, 누가 관리자이고 누가 어느 담당자인지는
+-- members 표에 넣어야 합니다. → supabase/members.sql 을 실행하세요.
 --
--- (2) 관리자 지정 : 이메일을 본인 관리자 계정으로 바꿔 실행
---   insert into public.members (user_id, is_admin)
---   select id, true from auth.users where email = 'admin@frontx.co.kr'
---   on conflict (user_id) do update set is_admin = true;
---
--- (3) 담당자 배정 : 로그인 계정 ↔ agents.id 매핑
---   -- agents.id 확인:  select id, name from public.agents;
---   insert into public.members (user_id, agent_id)
---   select id, 'legacy' from auth.users where email = 'park@frontx.co.kr'
---   on conflict (user_id) do update set agent_id = excluded.agent_id;
+-- 순서:
+--   (1) Authentication → Users → Add user 로 계정 생성 (Auto Confirm User 체크)
+--   (2) supabase/members.sql 을 이메일에 맞게 고쳐 실행
+--   (3) members.sql 맨 아래 확인 쿼리로 결과 검증

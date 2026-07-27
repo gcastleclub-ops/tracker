@@ -57,36 +57,22 @@
 
 계정을 만든 것만으로는 아무 수정 권한이 없습니다(열람 전용). `members` 표에 등록해야 합니다.
 
-**관리자 지정** — 이메일을 본인 것으로 바꿔 실행:
+SQL Editor에서 [`supabase/members.sql`](supabase/members.sql)을 실행하세요. 재실행해도 안전하고, 파일 맨 아래 **확인 쿼리**가 각 계정의 실제 상태를 표로 보여줍니다.
 
-```sql
-insert into public.members (user_id, is_admin)
-select id, true from auth.users where email = 'admin@frontx.co.kr'
-on conflict (user_id) do update set is_admin = true;
-```
+현재 배정:
 
-**담당자 배정** — 로그인 계정과 담당자를 연결합니다. 먼저 담당자 id를 확인하고:
+| 계정 | 권한 | agent_id |
+|---|---|---|
+| `admin@gmail.com` | 관리자 | — |
+| `gcastleclub@gmail.com` | 관리자 + 박상욱 담당 겸직 | `legacy` |
+| `test1@jienem.kr` | 담당자1 실적만 수정 | `agent_default_1` |
+| `test2@jienem.kr` | 담당자2 실적만 수정 | `agent_default_2` |
 
-```sql
-select id, name from public.agents;
-```
+관리자가 담당자를 겸하면 전체를 수정할 수 있으면서 로그인 시 본인 탭으로 바로 이동합니다.
 
-그 id를 넣어 실행합니다 (기존 데이터의 박상욱은 id가 `legacy`입니다):
+담당자 이름(`담당자1` 등)은 앱의 **⚙ 담당자 관리**에서 바꿔도 됩니다. 매핑은 이름이 아닌 내부 id 기준이라 그대로 유지됩니다.
 
-```sql
-insert into public.members (user_id, agent_id)
-select id, 'legacy' from auth.users where email = 'park@frontx.co.kr'
-on conflict (user_id) do update set agent_id = excluded.agent_id;
-```
-
-담당자를 새로 추가했다면(앱의 ⚙ 담당자 관리) 그 id로 같은 쿼리를 돌리면 됩니다.
-
-**권한 확인:**
-
-```sql
-select u.email, m.is_admin, m.agent_id
-from public.members m join auth.users u on u.id = m.user_id;
-```
+> 확인 쿼리에 **"계정없음"** 이 뜨면 2-1에서 그 계정을 먼저 만들어야 합니다. 계정이 없으면 `insert`가 조용히 아무것도 하지 않습니다.
 
 ### 로그인 위치
 
