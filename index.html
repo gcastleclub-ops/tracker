@@ -27,47 +27,56 @@
   }
   #appRoot{ display:flex; min-height:100vh; }
 
-  /* ---------------- Auth gate ---------------- */
-  #authGate{
-    position:fixed; inset:0; z-index:500; background:var(--navy-dk);
-    display:flex; align-items:center; justify-content:center; padding:20px;
+  /* ------------- 우측 상단 로그인 바 ------------- */
+  #authBar{ margin-left:auto; display:flex; flex-direction:column; align-items:flex-end; gap:4px; }
+  .auth-form{ display:flex; flex-direction:column; align-items:flex-end; gap:5px; }
+  .auth-row{ display:flex; align-items:center; gap:6px; }
+  .auth-row.opts{ gap:12px; }
+  #authBar input[type=email], #authBar input[type=password]{
+    width:150px; padding:7px 10px; border:1px solid var(--line); border-radius:7px;
+    font-size:12.5px; font-family:inherit; background:var(--card); color:var(--navy-dk);
   }
-  .auth-card{
-    background:#fff; border-radius:14px; padding:30px 30px 26px; width:min(380px,100%);
-    box-shadow:0 20px 60px rgba(0,0,0,0.35);
+  #authBar input[type=email]:focus, #authBar input[type=password]:focus{
+    outline:2px solid var(--accent); border-color:transparent;
   }
-  .auth-card h2{ margin:0 0 4px; font-size:18px; color:var(--navy-dk); }
-  .auth-card .sub{ font-size:12px; color:#93A0BE; margin-bottom:20px; line-height:1.6; }
-  .auth-card label{ display:block; font-size:11.5px; font-weight:700; color:var(--gray); margin-bottom:5px; }
-  .auth-card input{
-    width:100%; padding:10px 12px; border:1px solid var(--line); border-radius:8px;
-    font-size:14px; font-family:inherit; margin-bottom:13px;
+  #authBtn{
+    padding:7px 18px; border:none; border-radius:7px; background:var(--navy);
+    color:#fff; font-size:12.5px; font-weight:700; cursor:pointer; font-family:inherit; white-space:nowrap;
   }
-  .auth-card input:focus{ outline:2px solid var(--accent); border-color:transparent; }
-  .auth-card button{
-    width:100%; padding:11px; border:none; border-radius:8px; background:var(--navy);
-    color:#fff; font-size:14px; font-weight:700; cursor:pointer; font-family:inherit;
-  }
-  .auth-card button:hover{ background:var(--navy-dk); }
-  .auth-card button:disabled{ opacity:.6; cursor:default; }
-  .auth-card button.auth-secondary{
-    background:none; color:#93A0BE; font-size:12px; font-weight:600; padding:9px; margin-top:7px;
-  }
-  .auth-card button.auth-secondary:hover{ background:#F5F7FC; color:var(--gray); }
-  .auth-opts{ display:flex; gap:18px; margin:-4px 0 15px; }
+  #authBtn:hover{ background:var(--navy-dk); }
+  #authBtn:disabled{ opacity:.6; cursor:default; }
+  /* 배너의 "로그인" 버튼을 눌렀을 때 어디를 봐야 하는지 잠깐 강조 */
+  #authBar.flash input[type=email]{ outline:2px solid var(--accent); }
   .auth-check{
-    display:flex; align-items:center; gap:6px; margin:0; cursor:pointer;
-    font-size:12px; font-weight:600; color:var(--gray); user-select:none;
+    display:flex; align-items:center; gap:5px; margin:0; cursor:pointer;
+    font-size:11px; font-weight:600; color:#93A0BE; user-select:none; white-space:nowrap;
   }
-  .auth-check input[type=checkbox]{
-    width:auto; margin:0; accent-color:var(--navy); cursor:pointer;
+  .auth-check input[type=checkbox]{ width:auto; margin:0; accent-color:var(--navy); cursor:pointer; }
+
+  .auth-signed{ display:flex; align-items:center; gap:10px; }
+  .auth-who{ display:flex; flex-direction:column; align-items:flex-end; gap:2px; line-height:1.2; }
+  .auth-email{ font-size:12px; font-weight:700; color:var(--navy-dk); }
+  .auth-signout{
+    padding:7px 14px; border:1px solid var(--line); border-radius:7px; background:var(--card);
+    color:var(--gray); font-size:12px; font-weight:700; cursor:pointer; font-family:inherit; white-space:nowrap;
   }
-  .auth-msg{ font-size:12px; margin-top:12px; line-height:1.6; min-height:16px; }
+  .auth-signout:hover{ background:#eef1fb; }
+
+  .auth-msg{ font-size:11.5px; line-height:1.5; text-align:right; max-width:340px; }
+  .auth-msg:empty{ display:none; }
   .auth-msg.err{ color:#B0392E; }
   .auth-msg.ok{ color:#2F7D4F; }
   .auth-msg code{
-    display:block; background:#F5F7FC; border-radius:6px; padding:8px 10px; margin-top:6px;
-    font-size:11px; color:var(--gray); word-break:break-all;
+    display:block; background:var(--card); border:1px solid var(--line); border-radius:6px;
+    padding:6px 9px; margin-top:5px; font-size:10.5px; color:var(--gray); word-break:break-all; text-align:left;
+  }
+
+  @media (max-width:760px){
+    #authBar{ margin-left:0; width:100%; align-items:stretch; }
+    .auth-form{ align-items:stretch; }
+    .auth-row{ flex-wrap:wrap; }
+    #authBar input[type=email], #authBar input[type=password]{ flex:1; min-width:130px; width:auto; }
+    .auth-msg{ text-align:left; max-width:none; }
   }
 
   /* ---------------- Sidebar ---------------- */
@@ -123,7 +132,6 @@
   }
   #sidebar .tools button:hover{ background:rgba(255,255,255,0.14); }
   #saveIndicator{ font-size:10.5px; color:#7c86ad; text-align:center; margin-top:4px; line-height:1.5; }
-  #whoami{ font-size:10px; color:#5f6a90; text-align:center; margin-top:6px; word-break:break-all; }
 
   /* ---------------- Main ---------------- */
   #main{ flex:1; padding:26px 34px 60px; max-width:1180px; }
@@ -160,12 +168,13 @@
     padding:5px 12px; border-radius:14px; cursor:pointer;
   }
   .perm-login-btn:hover{ background:var(--navy-dk); }
+  /* 밝은 배경(우측 상단 바) 기준 색 */
   .role-badge{
-    display:inline-block; font-size:9.5px; font-weight:800; border-radius:8px; padding:2px 7px; margin-top:5px;
-    background:rgba(255,255,255,0.14); color:#c3cbe6;
+    display:inline-block; font-size:9.5px; font-weight:800; border-radius:8px; padding:2px 7px;
+    background:#E4EAF8; color:var(--accent);
   }
   .role-badge.admin{ background:#2F7D4F; color:#fff; }
-  .role-badge.viewer{ background:rgba(255,255,255,0.1); color:#9AA5C0; }
+  .role-badge.viewer{ background:#EDEFF6; color:#93A0BE; }
   .agent-settings-btn{
     margin-left:auto; padding:7px 13px; border-radius:16px; background:#EEF1FB; color:var(--accent);
     font-size:11.5px; font-weight:700; cursor:pointer; border:1px solid var(--line);
@@ -321,29 +330,7 @@
 </head>
 <body>
 
-<!-- ============ 로그인 화면 ============ -->
-<div id="authGate">
-  <div class="auth-card">
-    <h2>FRONT-X 주간 KPI 트래커</h2>
-    <div class="sub">팀 계정으로 로그인하세요. 계정은 관리자가 Supabase에서 발급합니다.</div>
-    <form id="authForm">
-      <label for="authEmail">이메일</label>
-      <input type="email" id="authEmail" autocomplete="username" required>
-      <label for="authPw">비밀번호</label>
-      <input type="password" id="authPw" autocomplete="current-password" required>
-      <div class="auth-opts">
-        <label class="auth-check"><input type="checkbox" id="keepLogin" checked> 로그인 유지</label>
-        <label class="auth-check"><input type="checkbox" id="saveEmail" checked> 아이디 저장</label>
-      </div>
-      <button type="submit" id="authBtn">로그인</button>
-      <button type="button" id="authCancel" class="auth-secondary" style="display:none;" onclick="cancelLogin()">취소하고 열람만 하기</button>
-    </form>
-    <div class="auth-msg" id="authMsg"></div>
-  </div>
-</div>
-
-<!-- ============ 앱 본체 ============ -->
-<div id="appRoot" style="display:none;">
+<!-- ============ 앱 본체 (로그인 없이 바로 열람) ============ --><div id="appRoot">
   <div id="sidebar">
     <h1 class="editable" contenteditable="true" id="sbTitle">FRONT-X 투자영업실</h1>
     <div class="sub editable" contenteditable="true" id="sbSub">주간 영업 KPI 보고 트래커</div>
@@ -361,10 +348,7 @@
       <button id="btnImport" onclick="document.getElementById('importFile').click()">⬆ 백업 파일 불러오기</button>
       <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
       <button id="btnReset" onclick="resetAll()" style="color:#ffb0b0;">⟲ 전체 초기화</button>
-      <button id="btnSignOut" onclick="signOut()">로그아웃</button>
-      <button id="btnSignIn" onclick="openLogin()" style="display:none;">로그인</button>
       <div id="saveIndicator">불러오는 중...</div>
-      <div id="whoami"></div>
     </div>
   </div>
 
@@ -373,6 +357,29 @@
       <div class="tab" data-mode="week" onclick="setMode('week')">주간 보고</div>
       <div class="tab" data-mode="month" onclick="setMode('month')">월간 현황</div>
       <div class="tab" data-mode="year" onclick="setMode('year')">연간 현황</div>
+
+      <!-- 우측 상단 로그인 영역 (로그인 전/후에 따라 내용이 바뀜) -->
+      <div id="authBar">
+        <form id="authForm" class="auth-form">
+          <div class="auth-row">
+            <input type="email" id="authEmail" placeholder="이메일" autocomplete="username" required>
+            <input type="password" id="authPw" placeholder="비밀번호" autocomplete="current-password" required>
+            <button type="submit" id="authBtn">로그인</button>
+          </div>
+          <div class="auth-row opts">
+            <label class="auth-check"><input type="checkbox" id="keepLogin" checked> 로그인 유지</label>
+            <label class="auth-check"><input type="checkbox" id="saveEmail" checked> 아이디 저장</label>
+          </div>
+        </form>
+        <div id="authSigned" class="auth-signed" style="display:none;">
+          <div class="auth-who">
+            <span class="auth-email" id="authEmailLabel"></span>
+            <span id="authRoleBadge"></span>
+          </div>
+          <button type="button" class="auth-signout" onclick="signOut()">로그아웃</button>
+        </div>
+        <div class="auth-msg" id="authMsg"></div>
+      </div>
     </div>
 
     <div id="viewArea">불러오는 중...</div>
@@ -1721,65 +1728,64 @@ function configLooksUnset(){
 
 let manualSignOut = false;
 
+// 로그아웃해도 화면은 그대로 두고 열람 모드로만 내려간다 (아이디 저장 값은 유지)
 async function signOut(){
   manualSignOut = true;
   try{ await SB.auth.signOut(); }catch(e){}
-  location.reload();   // 아이디 저장 값은 localStorage 에 따로 있어 그대로 남는다
+  CURRENT_USER = null;
+  PERM = { isAdmin:false, myAgentId:null };
+  document.getElementById('authPw').value = '';
+  prefillAuthForm();
+  applyPermissionsToChrome();
+  renderSidebar();
+  renderMain();
+  setStatus('열람 모드');
+  authMsg('로그아웃되었습니다. 열람은 계속 가능합니다.', 'ok');
+  setTimeout(()=>{ manualSignOut = false; authMsg(''); }, 3000);
 }
 
-// 저장된 아이디 / 로그인 유지 설정을 로그인 폼에 반영
+// 저장된 아이디 / 로그인 유지 설정을 로그인 폼에 반영 (포커스는 옮기지 않는다)
 function prefillAuthForm(){
   const emailInput = document.getElementById('authEmail');
   const saveChk = document.getElementById('saveEmail');
   const keepChk = document.getElementById('keepLogin');
+  if(!emailInput) return;
   let saved = null;
   try{ saved = localStorage.getItem(EMAIL_KEY); }catch(e){}
   saveChk.checked = saveEmailEnabled();
   keepChk.checked = keepLoginEnabled();
-  if(saved){
-    emailInput.value = saved;
-    document.getElementById('authPw').focus();   // 아이디가 채워져 있으면 바로 비밀번호로
-  }else{
-    emailInput.focus();
-  }
+  if(saved) emailInput.value = saved;
 }
 
-// 세션이 끊겼을 때: 로그인 화면으로 돌려보내되 저장 대기중인 내용은 큐에 남겨둔다
+// 세션이 끊겼을 때: 열람 상태로 되돌리되 저장 대기중인 내용은 큐에 남겨둔다
 function showSessionExpired(){
   clearTimeout(retryTimer);
   clearTimeout(flushTimer);
   CURRENT_USER = null;
   PERM = { isAdmin:false, myAgentId:null };
-  document.getElementById('appRoot').style.display = 'none';
-  document.getElementById('authGate').style.display = 'flex';
   document.getElementById('authBtn').disabled = false;
-  document.getElementById('authCancel').style.display = DB ? '' : 'none';
+  document.getElementById('authPw').value = '';
   prefillAuthForm();
+  applyPermissionsToChrome();
+  renderMain();                       // 입력칸을 즉시 잠근다
   const unsaved = pending.config || pending.agents || pending.weeks.size > 0;
   authMsg('세션이 만료되었습니다. 다시 로그인해주세요.' +
-          (unsaved ? '<br>아직 저장되지 않은 입력이 있어, 로그인하면 이어서 저장합니다.' : ''), 'err');
+          (unsaved ? '<br>저장되지 않은 입력이 있어, 로그인하면 이어서 저장합니다.' : ''), 'err');
 }
 
 function showApp(user){
   CURRENT_USER = user || null;   // user 가 없으면 열람 전용 모드
-  document.getElementById('authGate').style.display = 'none';
-  document.getElementById('appRoot').style.display = 'flex';
 }
 
-// 열람 중에 로그인 화면을 띄운다 (취소하면 열람 상태로 복귀)
+// 배너의 "로그인" 버튼 → 우측 상단 입력칸으로 시선을 옮겨준다
 function openLogin(){
-  document.getElementById('appRoot').style.display = 'none';
-  document.getElementById('authGate').style.display = 'flex';
-  document.getElementById('authPw').value = '';
-  document.getElementById('authBtn').disabled = false;
-  document.getElementById('authCancel').style.display = DB ? '' : 'none';
-  authMsg('');
-  prefillAuthForm();
-}
-function cancelLogin(){
-  if(!DB) return;                       // 아직 앱이 안 떴으면 돌아갈 곳이 없다
-  document.getElementById('authGate').style.display = 'none';
-  document.getElementById('appRoot').style.display = 'flex';
+  const bar = document.getElementById('authBar');
+  const email = document.getElementById('authEmail');
+  if(!bar || !email) return;
+  window.scrollTo({top:0, behavior:'smooth'});
+  (email.value ? document.getElementById('authPw') : email).focus();
+  bar.classList.add('flash');
+  setTimeout(()=> bar.classList.remove('flash'), 1200);
 }
 
 function applyMetaToSidebar(){
@@ -1802,20 +1808,16 @@ function applyPermissionsToChrome(){
 
   show('btnImport', admin);            // 전체 덮어쓰기라 관리자 전용
   show('btnReset',  admin);            // 전체 삭제라 관리자 전용
-  show('btnSignOut', !!CURRENT_USER);
-  show('btnSignIn',  !CURRENT_USER);
 
-  const who = document.getElementById('whoami');
-  if(who){
-    if(!CURRENT_USER){
-      who.innerHTML = '<span class="role-badge viewer">열람 전용</span>';
-    }else if(PERM.isAdmin){
-      who.innerHTML = esc(CURRENT_USER.email||'') + '<br><span class="role-badge admin">관리자</span>';
-    }else if(PERM.myAgentId){
-      who.innerHTML = esc(CURRENT_USER.email||'') + '<br><span class="role-badge">담당: ' + esc(agentDisplayName(PERM.myAgentId)) + '</span>';
-    }else{
-      who.innerHTML = esc(CURRENT_USER.email||'') + '<br><span class="role-badge viewer">열람 전용</span>';
-    }
+  // 우측 상단: 로그인 전이면 입력 폼, 로그인 후면 계정 + 역할 배지
+  show('authForm',   !CURRENT_USER);
+  show('authSigned', !!CURRENT_USER);
+  if(CURRENT_USER){
+    document.getElementById('authEmailLabel').textContent = CURRENT_USER.email || '';
+    const badge = document.getElementById('authRoleBadge');
+    if(PERM.isAdmin)        badge.className = 'role-badge admin',  badge.textContent = '관리자';
+    else if(PERM.myAgentId) badge.className = 'role-badge',        badge.textContent = '담당: ' + agentDisplayName(PERM.myAgentId);
+    else                    badge.className = 'role-badge viewer', badge.textContent = '열람 전용';
   }
 }
 
@@ -1917,8 +1919,7 @@ async function handleLoginSuccess(user){
   if(!DB){ startApp(user); return; }
 
   CURRENT_USER = user;
-  document.getElementById('authGate').style.display = 'none';
-  document.getElementById('appRoot').style.display = 'flex';
+  document.getElementById('authPw').value = '';
   await loadPermissions();
   applyPermissionsToChrome();
 
