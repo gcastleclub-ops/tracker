@@ -3,7 +3,7 @@
 기존 단일 HTML 파일(브라우저 `localStorage` 저장) 버전을 **Supabase(DB·로그인·실시간) + GitHub Pages(호스팅)** 구조로 옮긴 버전입니다.
 
 - 데이터는 브라우저가 아니라 **Supabase에 저장** → 어느 PC·휴대폰에서 열어도 같은 데이터
-- **로그인한 팀원만** 접근 가능 (RLS 적용)
+- **열람은 누구나, 수정은 권한대로** (RLS 적용)
 - 여러 명이 동시에 열어두면 **실시간으로 서로의 입력이 반영**
 - 화면 상태(펼친 월, 선택한 주차 등)는 사람마다 다르므로 각자 브라우저에 저장
 
@@ -30,14 +30,63 @@
 
 테이블 3개(`app_config`, `agents`, `week_entries`), RLS 정책, 실시간 발행, 기본 KPI 항목이 한 번에 만들어집니다. 여러 번 실행해도 안전합니다.
 
-## 2. 팀원 계정 만들기
+## 2. 계정 만들고 권한 주기
+
+### 권한 모델
+
+| 구분 | 열람 | 실적 입력 | KPI 항목·등급·담당자 관리 | 백업 업로드 / 초기화 |
+|---|---|---|---|---|
+| **비로그인** | 전체 | ✕ | ✕ | ✕ |
+| **담당자** | 전체 | 본인 담당만 | ✕ | ✕ |
+| **관리자** | 전체 | 전체 | ○ | ○ |
+
+"전체" 탭은 자동 합산 화면이라 관리자도 입력할 수 없습니다(원본 동작 그대로).
+
+> ⚠️ **열람은 로그인 없이 누구나 가능합니다.** URL을 아는 사람은 거래처명·계약 내용·상담 노트를 모두 볼 수 있습니다. 팀 전용으로 바꾸려면 아래 [열람도 로그인 필수로 바꾸기](#열람도-로그인-필수로-바꾸기) 참고.
+
+### 2-1. 계정 발급
 
 좌측 **Authentication → Users → Add user → Create new user**
 
 - Email / Password 입력
 - **Auto Confirm User 체크** (메일 인증 절차 생략)
 
-담당자 수만큼 반복합니다. 가입 화면은 따로 없고, 관리자가 여기서 발급한 계정으로만 로그인합니다.
+가입 화면은 따로 없고, 관리자가 여기서 발급한 계정으로만 로그인합니다.
+
+### 2-2. 권한 부여 (SQL Editor)
+
+계정을 만든 것만으로는 아무 수정 권한이 없습니다(열람 전용). `members` 표에 등록해야 합니다.
+
+**관리자 지정** — 이메일을 본인 것으로 바꿔 실행:
+
+```sql
+insert into public.members (user_id, is_admin)
+select id, true from auth.users where email = 'admin@frontx.co.kr'
+on conflict (user_id) do update set is_admin = true;
+```
+
+**담당자 배정** — 로그인 계정과 담당자를 연결합니다. 먼저 담당자 id를 확인하고:
+
+```sql
+select id, name from public.agents;
+```
+
+그 id를 넣어 실행합니다 (기존 데이터의 박상욱은 id가 `legacy`입니다):
+
+```sql
+insert into public.members (user_id, agent_id)
+select id, 'legacy' from auth.users where email = 'park@frontx.co.kr'
+on conflict (user_id) do update set agent_id = excluded.agent_id;
+```
+
+담당자를 새로 추가했다면(앱의 ⚙ 담당자 관리) 그 id로 같은 쿼리를 돌리면 됩니다.
+
+**권한 확인:**
+
+```sql
+select u.email, m.is_admin, m.agent_id
+from public.members m join auth.users u on u.id = m.user_id;
+```
 
 ### 로그인 유지 / 아이디 저장
 
@@ -112,6 +161,7 @@ Supabase **Authentication → URL Configuration → Site URL** 에 `https://gcas
 | `app_config` | KPI 항목 정의, 등급 정의, 사이드바 제목 (항상 1행) |
 | `agents` | 담당자 목록 (`id`, `name`, `sort_order`) |
 | `week_entries` | 주차 × 담당자 실적. PK = (`week_key`, `agent_id`) |
+| `members` | 로그인 계정 ↔ 권한 매핑 (`user_id`, `is_admin`, `agent_id`) |
 
 `week_key` 형식은 `YYYY-MM-W` (예: `2026-07-2` = 2026년 7월 2주차). 주차 계산은 원본과 동일하게 **해당 월 1~7일 = 1주차, 8~14일 = 2주차 …** 방식입니다.
 
@@ -135,9 +185,31 @@ Supabase **Authentication → URL Configuration → Site URL** 에 `https://gcas
 
 ---
 
+## 열람도 로그인 필수로 바꾸기
+
+거래처 정보를 외부에 노출하고 싶지 않다면, SQL Editor에서 아래를 실행하면 됩니다. 열람에도 로그인이 필요해지고, 수정 권한 체계는 그대로 유지됩니다.
+
+```sql
+drop policy if exists "read all (public)" on public.app_config;
+drop policy if exists "read all (public)" on public.agents;
+drop policy if exists "read all (public)" on public.week_entries;
+create policy "read (members only)" on public.app_config   for select to authenticated using (true);
+create policy "read (members only)" on public.agents       for select to authenticated using (true);
+create policy "read (members only)" on public.week_entries for select to authenticated using (true);
+revoke select on public.app_config, public.agents, public.week_entries from anon;
+```
+
+되돌리려면 `schema.sql`을 다시 실행하세요.
+
 ## 자주 겪는 문제
 
-**로그인은 되는데 데이터가 안 보이고 저장도 안 될 때**
+**로그인했는데 입력칸이 전부 회색(읽기 전용)일 때**
+`members` 표에 등록되지 않은 계정입니다. 화면 좌측 하단에 "열람 전용" 배지가 보입니다. 위 [2-2. 권한 부여](#2-2-권한-부여-sql-editor)를 실행하세요.
+
+**본인 탭인데도 수정이 안 될 때**
+`members.agent_id`가 실제 `agents.id`와 다를 수 있습니다. `select id, name from public.agents;`로 확인 후 다시 배정하세요.
+
+**데이터가 아예 안 보이고 저장도 안 될 때**
 `schema.sql`의 RLS 정책 부분이 실행되지 않았을 가능성이 높습니다. SQL Editor에서 다시 한 번 전체 실행해 보세요.
 
 **다른 사람 입력이 실시간으로 안 넘어올 때**

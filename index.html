@@ -50,6 +50,10 @@
   }
   .auth-card button:hover{ background:var(--navy-dk); }
   .auth-card button:disabled{ opacity:.6; cursor:default; }
+  .auth-card button.auth-secondary{
+    background:none; color:#93A0BE; font-size:12px; font-weight:600; padding:9px; margin-top:7px;
+  }
+  .auth-card button.auth-secondary:hover{ background:#F5F7FC; color:var(--gray); }
   .auth-opts{ display:flex; gap:18px; margin:-4px 0 15px; }
   .auth-check{
     display:flex; align-items:center; gap:6px; margin:0; cursor:pointer;
@@ -138,6 +142,30 @@
   }
   .agent-tab:hover{ background:#eef1fb; }
   .agent-tab.active{ background:var(--accent); color:#fff; border-color:var(--accent); }
+  .agent-tab.mine{ border-color:var(--a-color); }
+  .agent-tab .mine-badge{
+    margin-left:6px; font-size:9.5px; font-weight:800; background:var(--a-color); color:#fff;
+    padding:1px 5px; border-radius:8px; vertical-align:1px;
+  }
+  .agent-tab.active .mine-badge{ background:rgba(255,255,255,0.3); }
+
+  .perm-note{
+    display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+    background:#FFF8E6; border:1px solid #F0DFB0; color:#7A5B1B;
+    border-radius:9px; padding:9px 13px; margin-bottom:14px; font-size:12.5px; line-height:1.5;
+  }
+  .perm-note.ok{ background:#EDF6F0; border-color:#C6E2D0; color:#2C6244; }
+  .perm-login-btn{
+    border:none; background:var(--navy); color:#fff; font-family:inherit; font-size:11.5px; font-weight:700;
+    padding:5px 12px; border-radius:14px; cursor:pointer;
+  }
+  .perm-login-btn:hover{ background:var(--navy-dk); }
+  .role-badge{
+    display:inline-block; font-size:9.5px; font-weight:800; border-radius:8px; padding:2px 7px; margin-top:5px;
+    background:rgba(255,255,255,0.14); color:#c3cbe6;
+  }
+  .role-badge.admin{ background:#2F7D4F; color:#fff; }
+  .role-badge.viewer{ background:rgba(255,255,255,0.1); color:#9AA5C0; }
   .agent-settings-btn{
     margin-left:auto; padding:7px 13px; border-radius:16px; background:#EEF1FB; color:var(--accent);
     font-size:11.5px; font-weight:700; cursor:pointer; border:1px solid var(--line);
@@ -308,6 +336,7 @@
         <label class="auth-check"><input type="checkbox" id="saveEmail" checked> 아이디 저장</label>
       </div>
       <button type="submit" id="authBtn">로그인</button>
+      <button type="button" id="authCancel" class="auth-secondary" style="display:none;" onclick="cancelLogin()">취소하고 열람만 하기</button>
     </form>
     <div class="auth-msg" id="authMsg"></div>
   </div>
@@ -329,10 +358,11 @@
 
     <div class="tools">
       <button onclick="exportData()">⬇ 백업 파일로 내보내기</button>
-      <button onclick="document.getElementById('importFile').click()">⬆ 백업 파일 불러오기</button>
+      <button id="btnImport" onclick="document.getElementById('importFile').click()">⬆ 백업 파일 불러오기</button>
       <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
-      <button onclick="resetAll()" style="color:#ffb0b0;">⟲ 전체 초기화</button>
-      <button onclick="signOut()">로그아웃</button>
+      <button id="btnReset" onclick="resetAll()" style="color:#ffb0b0;">⟲ 전체 초기화</button>
+      <button id="btnSignOut" onclick="signOut()">로그아웃</button>
+      <button id="btnSignIn" onclick="openLogin()" style="display:none;">로그인</button>
       <div id="saveIndicator">불러오는 중...</div>
       <div id="whoami"></div>
     </div>
@@ -425,6 +455,20 @@ function defaultUI(){
 let DB = null;        // { meta:{title,subtitle}, config:{items,gradeDefs,agents}, weeks:{}, ui:{} }
 let SB = null;        // Supabase client
 let CURRENT_USER = null;
+
+/* ---- 권한 ----
+   로그인 안 함        : 열람만
+   관리자(isAdmin)     : 전체 수정
+   담당자(myAgentId)   : 본인 담당자 실적만 수정 (KPI 항목/등급 정의/담당자 목록은 수정 불가)
+   실제 강제는 Supabase RLS 가 하고, 여기서는 화면을 그에 맞게 보여줄 뿐이다. */
+let PERM = { isAdmin:false, myAgentId:null };
+
+function canEditAgent(agentId){
+  if(!CURRENT_USER || agentId === 'ALL') return false;
+  return PERM.isAdmin || (!!PERM.myAgentId && PERM.myAgentId === agentId);
+}
+// KPI 항목명/목표/등급 정의/담당자 목록 등 공통 설정은 관리자만
+function canEditConfig(){ return !!CURRENT_USER && PERM.isAdmin; }
 
 /* ============================================================
    SYNC STATUS
@@ -576,6 +620,20 @@ function syncMetaResponseAll(dbObj){
     });
   });
   return dbObj;
+}
+
+// 로그인 사용자의 권한을 members 표에서 읽어온다 (없으면 열람 전용)
+async function loadPermissions(){
+  PERM = { isAdmin:false, myAgentId:null };
+  if(!CURRENT_USER) return PERM;
+  try{
+    const res = await SB.from('members').select('is_admin, agent_id').eq('user_id', CURRENT_USER.id).maybeSingle();
+    if(!res.error && res.data){
+      PERM.isAdmin   = !!res.data.is_admin;
+      PERM.myAgentId = res.data.agent_id || null;
+    }
+  }catch(e){ console.error('permission load error', e); }
+  return PERM;
 }
 
 async function loadDB(){
@@ -882,12 +940,14 @@ function renderAgentTabsHTML(agentId){
   let h = '<div class="agent-tabs">';
   h += '<div class="agent-tab'+(agentId==='ALL'?' active':'')+'" data-agent="ALL">전체</div>';
   DB.config.agents.forEach(a=>{
-    h += '<div class="agent-tab'+(agentId===a.id?' active':'')+'" data-agent="'+escAttr(a.id)+'">'+esc(a.name)+'</div>';
+    const mine = PERM.myAgentId === a.id && !PERM.isAdmin;
+    h += '<div class="agent-tab'+(agentId===a.id?' active':'')+(mine?' mine':'')+'" data-agent="'+escAttr(a.id)+'">'
+       + esc(a.name) + (mine?'<span class="mine-badge">본인</span>':'') + '</div>';
   });
-  h += '<div class="agent-settings-btn" id="agentSettingsBtn">⚙ 담당자 관리</div>';
+  if(canEditConfig()) h += '<div class="agent-settings-btn" id="agentSettingsBtn">⚙ 담당자 관리</div>';
   h += '</div>';
 
-  if(DB.ui.showAgentSettings){
+  if(DB.ui.showAgentSettings && canEditConfig()){
     h += '<div class="agent-settings-panel">';
     h += '<div class="agent-settings-title">담당자 관리 (추가 / 이름수정 / 삭제)</div>';
     h += '<div class="agent-settings-list">';
@@ -936,11 +996,13 @@ function selectAgent(id){
   renderMain();
 }
 function toggleAgentSettings(){
+  if(!canEditConfig()) return;
   DB.ui.showAgentSettings = !DB.ui.showAgentSettings;
   scheduleSave();
   renderMain();
 }
 function addAgent(){
+  if(!canEditConfig()) return;
   const input = document.getElementById('newAgentName');
   const name = (input.value||'').trim();
   if(!name) return;
@@ -952,6 +1014,7 @@ function addAgent(){
   renderMain();
 }
 function renameAgent(id, newName){
+  if(!canEditConfig()) return;
   const a = DB.config.agents.find(x=>x.id===id);
   if(!a) return;
   const trimmed = (newName||'').trim();
@@ -964,6 +1027,7 @@ function renameAgent(id, newName){
   renderMain();
 }
 async function removeAgent(id){
+  if(!canEditConfig()) return;
   const a = DB.config.agents.find(x=>x.id===id);
   if(!a) return;
   if(!confirm('"'+a.name+'" 담당자를 목록에서 삭제할까요?\n(이미 입력된 실적 데이터는 삭제되지 않고 "전체" 합계에 계속 반영됩니다)')) return;
@@ -997,15 +1061,22 @@ function renderWeekView(area){
 
   const totalVisit = Number(wd.grades.A||0)+Number(wd.grades.B||0)+Number(wd.grades.C||0)+Number(wd.grades.D||0);
   const contractVal = itemVal(wd,'contract');
-  const ro = isAll ? 'readonly' : ''; // read-only attribute applied to inputs/textareas in "전체" mode
+
+  // "전체"는 항상 자동합산이라 읽기전용, 그 외에는 이 담당자를 수정할 권한이 있는지로 결정
+  const editable = !isAll && canEditAgent(agentId);
+  const ro = editable ? '' : 'readonly';
+  const cfgEditable = canEditConfig();
 
   let html = '';
   html += renderAgentTabsHTML(agentId);
+  html += permissionBannerHTML(agentId, isAll, editable);
 
   if(isAll){
     html += '<div class="report-title">'+y+'년 '+m+'월 '+w+'주차 · 전체 영업 KPI 보고</div>';
-  }else{
+  }else if(editable){
     html += '<div class="report-title editable" contenteditable="true" id="wkTitle">'+esc(wd.title)+'</div>';
+  }else{
+    html += '<div class="report-title">'+esc(wd.title)+'</div>';
   }
   html += '<div class="date-range">'+y+'년 '+m+'월 '+w+'주차 · '+weekRangeLabel(y,m,w)+' · 담당자: '+esc(agentDisplayName(agentId))+(isAll?' (자동 합산, 읽기전용)':'')+'</div>';
 
@@ -1026,13 +1097,14 @@ function renderWeekView(area){
     const monthTotal = sumOverWeeksForAgent(y,m,agentId, d=>itemVal(d,it.key));
     const yearTotal = sumOverMonthsForAgent(y,agentId, d=>itemVal(d,it.key));
     html += '<tr>';
-    html += '<td><span class="editable" contenteditable="true" data-bind="itemLabel" data-idx="'+idx+'">'+esc(it.label)+'</span></td>';
-    html += '<td><span class="editable" contenteditable="true" data-bind="itemTarget" data-idx="'+idx+'">'+esc(it.target)+'</span></td>';
+    const cfgAttr = cfgEditable ? ' class="editable" contenteditable="true"' : '';
+    html += '<td><span'+cfgAttr+' data-bind="itemLabel" data-idx="'+idx+'">'+esc(it.label)+'</span></td>';
+    html += '<td><span'+cfgAttr+' data-bind="itemTarget" data-idx="'+idx+'">'+esc(it.target)+'</span></td>';
     const isMetaResponse = it.key==='metaResponse';
     const mrValue = isMetaResponse ? (wd.metaInbound.inbound||0) : (wd.items[it.key]?wd.items[it.key].val:0);
     const mrRo = isMetaResponse ? 'readonly title="메타광고 인입 건수와 자동 연동됩니다"' : ro;
     html += '<td><input type="number" '+mrRo+' data-bind="itemVal" data-key="'+it.key+'" value="'+ mrValue +'"></td>';
-    html += '<td><textarea class="note-input" rows="1" '+ro+' data-bind="itemNote" data-key="'+it.key+'" placeholder="'+(isAll?'담당자별 비고 (읽기전용)':'특이사항 입력')+'">'+esc(wd.items[it.key]?wd.items[it.key].note:'')+'</textarea></td>';
+    html += '<td><textarea class="note-input" rows="1" '+ro+' data-bind="itemNote" data-key="'+it.key+'" placeholder="'+notePlaceholder(isAll, editable, '특이사항 입력')+'">'+esc(wd.items[it.key]?wd.items[it.key].note:'')+'</textarea></td>';
     html += '<td class="agg">'+monthTotal+'<small>누계</small></td>';
     html += '<td class="agg">'+yearTotal+'<small>누계</small></td>';
     html += '</tr>';
@@ -1048,12 +1120,12 @@ function renderWeekView(area){
     html += '<div class="grade-card '+g+'">';
     html += '<div class="g-top"><span class="g-name">'+g+ (g==='D' ? ' (Drop)':'') +'</span>';
     html += '<input type="number" '+ro+' data-bind="grade" data-key="'+g+'" value="'+(wd.grades[g]||0)+'"></div>';
-    html += '<div class="g-def editable" contenteditable="true" data-bind="gradeDef" data-key="'+g+'">'+esc(DB.config.gradeDefs[g])+'</div>';
+    html += '<div class="g-def'+(cfgEditable?' editable" contenteditable="true':'')+'" data-bind="gradeDef" data-key="'+g+'">'+esc(DB.config.gradeDefs[g])+'</div>';
     html += '<div class="grade-agg"><span>이번달 '+monthTotal+'</span><span>올해 '+yearTotal+'</span></div>';
     html += '</div>';
   });
   html += '</div>';
-  html += '<textarea class="note-input" rows="1" '+ro+' style="margin-top:4px;" data-bind="gradeNote" placeholder="'+(isAll?'담당자별 비고 (읽기전용)':'등급 분류 관련 특이사항')+'">'+esc(wd.grades.note||'')+'</textarea>';
+  html += '<textarea class="note-input" rows="1" '+ro+' style="margin-top:4px;" data-bind="gradeNote" placeholder="'+notePlaceholder(isAll, editable, '등급 분류 관련 특이사항')+'">'+esc(wd.grades.note||'')+'</textarea>';
   html += '</div>';
 
   // meta inbound section
@@ -1069,12 +1141,37 @@ function renderWeekView(area){
   html += metaBox('미팅 완료','met',wd.metaInbound.met, monthMet, null, ro);
   html += metaBox('미팅 예정','toMeet',wd.metaInbound.toMeet, monthToMeet, null, ro);
   html += '</div>';
-  html += '<textarea class="note-input" rows="1" '+ro+' style="margin-top:12px;" data-bind="metaNote" placeholder="'+(isAll?'담당자별 비고 (읽기전용)':'메타광고 관련 특이사항')+'">'+esc(wd.metaInbound.note||'')+'</textarea>';
+  html += '<textarea class="note-input" rows="1" '+ro+' style="margin-top:12px;" data-bind="metaNote" placeholder="'+notePlaceholder(isAll, editable, '메타광고 관련 특이사항')+'">'+esc(wd.metaInbound.note||'')+'</textarea>';
   html += '</div>';
 
   area.innerHTML = html;
   bindAgentControls();
-  bindWeekEvents(isAll);
+  bindWeekEvents(editable, cfgEditable);
+}
+
+// 비고 입력칸 안내문구: 왜 못 쓰는지가 드러나도록
+function notePlaceholder(isAll, editable, normal){
+  if(isAll) return '담당자별 비고 (자동 합산, 읽기전용)';
+  if(!editable) return CURRENT_USER ? '읽기 전용 (본인 담당이 아님)' : '읽기 전용 (로그인 필요)';
+  return normal;
+}
+
+// 현재 화면에서 왜 수정이 되는지/안 되는지 한 줄로 알려준다
+function permissionBannerHTML(agentId, isAll, editable){
+  if(isAll) return '';
+  if(editable){
+    if(PERM.isAdmin) return '';   // 관리자는 어디서나 수정 가능하니 굳이 알리지 않음
+    return '<div class="perm-note ok">✎ 본인 담당(' + esc(agentDisplayName(agentId)) + ') 실적을 입력할 수 있습니다.</div>';
+  }
+  if(!CURRENT_USER){
+    return '<div class="perm-note">🔒 열람 전용입니다. 실적을 입력하려면 로그인해주세요.' +
+           ' <button type="button" class="perm-login-btn" onclick="openLogin()">로그인</button></div>';
+  }
+  if(PERM.myAgentId){
+    return '<div class="perm-note">🔒 ' + esc(agentDisplayName(agentId)) + ' 담당자는 수정할 수 없습니다. ' +
+           '본인 담당은 <b>' + esc(agentDisplayName(PERM.myAgentId)) + '</b> 탭입니다.</div>';
+  }
+  return '<div class="perm-note">🔒 열람 전용 계정입니다. 담당자 배정이 필요하면 관리자에게 문의해주세요.</div>';
 }
 
 function summaryBox(label, value, alt){
@@ -1093,25 +1190,27 @@ function autoGrow(el){
   el.style.height = el.scrollHeight + 'px';
 }
 
-function bindWeekEvents(isAll){
+function bindWeekEvents(editable, cfgEditable){
   const key = DB.ui.currentWeekKey;
   const agentId = DB.ui.currentAgent;
 
-  // label/target/grade-def are global config, editable in both ALL and per-agent views
-  document.querySelectorAll('[data-bind="itemLabel"]').forEach(el=>{
-    el.addEventListener('input', ()=>{ DB.config.items[el.dataset.idx].label = el.textContent; markConfigDirty(); });
-  });
-  document.querySelectorAll('[data-bind="itemTarget"]').forEach(el=>{
-    el.addEventListener('input', ()=>{ DB.config.items[el.dataset.idx].target = el.textContent; markConfigDirty(); });
-  });
-  document.querySelectorAll('[data-bind="gradeDef"]').forEach(el=>{
-    el.addEventListener('input', ()=>{ DB.config.gradeDefs[el.dataset.key] = el.textContent; markConfigDirty(); });
-  });
+  // KPI 항목명/목표/등급 정의는 공통 설정 - 관리자만 수정 가능
+  if(cfgEditable){
+    document.querySelectorAll('[data-bind="itemLabel"]').forEach(el=>{
+      el.addEventListener('input', ()=>{ DB.config.items[el.dataset.idx].label = el.textContent; markConfigDirty(); });
+    });
+    document.querySelectorAll('[data-bind="itemTarget"]').forEach(el=>{
+      el.addEventListener('input', ()=>{ DB.config.items[el.dataset.idx].target = el.textContent; markConfigDirty(); });
+    });
+    document.querySelectorAll('[data-bind="gradeDef"]').forEach(el=>{
+      el.addEventListener('input', ()=>{ DB.config.gradeDefs[el.dataset.key] = el.textContent; markConfigDirty(); });
+    });
+  }
 
-  // auto-grow all note textareas regardless of mode (so combined "전체" notes display fully too)
+  // 합산된 "전체" 비고도 전부 보이도록, 모드와 무관하게 높이를 맞춘다
   document.querySelectorAll('textarea.note-input').forEach(autoGrow);
 
-  if(isAll){ editingRecord = null; return; } // "전체" fields are readonly - nothing else to bind
+  if(!editable){ editingRecord = null; return; } // 수정 권한 없음 - 입력 핸들러를 걸지 않는다
 
   editingRecord = key+'|'+agentId;
   const wd = ensureAgentWeek(key, agentId);
@@ -1502,6 +1601,7 @@ function migrateLegacyWeeks(parsed){
 
 // 백업 JSON을 읽어 Supabase에 통째로 밀어 넣는다 (기존 데이터와 병합/덮어쓰기)
 function importData(e){
+  if(!canEditConfig()){ alert('백업 파일 불러오기는 관리자만 사용할 수 있습니다.'); e.target.value=''; return; }
   const file = e.target.files[0];
   if(!file) return;
   const reader = new FileReader();
@@ -1580,6 +1680,7 @@ function importData(e){
 }
 
 async function resetAll(){
+  if(!canEditConfig()){ alert('전체 초기화는 관리자만 사용할 수 있습니다.'); return; }
   if(!confirm('Supabase에 저장된 모든 KPI 데이터를 삭제합니다.\n되돌릴 수 없습니다. 계속할까요?')) return;
   if(!confirm('정말 삭제할까요?\n삭제 전에 "백업 파일로 내보내기"를 먼저 실행하시는 것을 권장합니다.')) return;
   try{
@@ -1648,9 +1749,11 @@ function showSessionExpired(){
   clearTimeout(retryTimer);
   clearTimeout(flushTimer);
   CURRENT_USER = null;
+  PERM = { isAdmin:false, myAgentId:null };
   document.getElementById('appRoot').style.display = 'none';
   document.getElementById('authGate').style.display = 'flex';
   document.getElementById('authBtn').disabled = false;
+  document.getElementById('authCancel').style.display = DB ? '' : 'none';
   prefillAuthForm();
   const unsaved = pending.config || pending.agents || pending.weeks.size > 0;
   authMsg('세션이 만료되었습니다. 다시 로그인해주세요.' +
@@ -1658,11 +1761,25 @@ function showSessionExpired(){
 }
 
 function showApp(user){
-  CURRENT_USER = user;
+  CURRENT_USER = user || null;   // user 가 없으면 열람 전용 모드
   document.getElementById('authGate').style.display = 'none';
   document.getElementById('appRoot').style.display = 'flex';
-  const who = document.getElementById('whoami');
-  if(who) who.textContent = user.email || '';
+}
+
+// 열람 중에 로그인 화면을 띄운다 (취소하면 열람 상태로 복귀)
+function openLogin(){
+  document.getElementById('appRoot').style.display = 'none';
+  document.getElementById('authGate').style.display = 'flex';
+  document.getElementById('authPw').value = '';
+  document.getElementById('authBtn').disabled = false;
+  document.getElementById('authCancel').style.display = DB ? '' : 'none';
+  authMsg('');
+  prefillAuthForm();
+}
+function cancelLogin(){
+  if(!DB) return;                       // 아직 앱이 안 떴으면 돌아갈 곳이 없다
+  document.getElementById('authGate').style.display = 'none';
+  document.getElementById('appRoot').style.display = 'flex';
 }
 
 function applyMetaToSidebar(){
@@ -1670,10 +1787,43 @@ function applyMetaToSidebar(){
   document.getElementById('sbSub').textContent = DB.meta.subtitle;
 }
 
+// 권한에 따라 사이드바 도구/역할 표시를 정리한다
+function applyPermissionsToChrome(){
+  const admin = canEditConfig();
+  const show = (id, on)=>{ const el = document.getElementById(id); if(el) el.style.display = on ? '' : 'none'; };
+
+  // 제목/부제는 공통 설정이므로 관리자만 편집
+  ['sbTitle','sbSub'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(!el) return;
+    el.contentEditable = admin ? 'true' : 'false';
+    el.classList.toggle('editable', admin);
+  });
+
+  show('btnImport', admin);            // 전체 덮어쓰기라 관리자 전용
+  show('btnReset',  admin);            // 전체 삭제라 관리자 전용
+  show('btnSignOut', !!CURRENT_USER);
+  show('btnSignIn',  !CURRENT_USER);
+
+  const who = document.getElementById('whoami');
+  if(who){
+    if(!CURRENT_USER){
+      who.innerHTML = '<span class="role-badge viewer">열람 전용</span>';
+    }else if(PERM.isAdmin){
+      who.innerHTML = esc(CURRENT_USER.email||'') + '<br><span class="role-badge admin">관리자</span>';
+    }else if(PERM.myAgentId){
+      who.innerHTML = esc(CURRENT_USER.email||'') + '<br><span class="role-badge">담당: ' + esc(agentDisplayName(PERM.myAgentId)) + '</span>';
+    }else{
+      who.innerHTML = esc(CURRENT_USER.email||'') + '<br><span class="role-badge viewer">열람 전용</span>';
+    }
+  }
+}
+
 async function startApp(user){
   showApp(user);
   setStatus('불러오는 중...');
   try{
+    await loadPermissions();
     DB = await loadDB();
   }catch(e){
     console.error(e);
@@ -1682,11 +1832,14 @@ async function startApp(user){
     return;
   }
   applyMetaToSidebar();
+  applyPermissionsToChrome();
 
   document.getElementById('sbTitle').addEventListener('input', e=>{
+    if(!canEditConfig()) return;
     DB.meta.title = e.target.textContent; markConfigDirty();
   });
   document.getElementById('sbSub').addEventListener('input', e=>{
+    if(!canEditConfig()) return;
     DB.meta.subtitle = e.target.textContent; markConfigDirty();
   });
 
@@ -1756,21 +1909,28 @@ async function bootstrap(){
   });
 
   const { data: { session } } = await SB.auth.getSession();
-  if(session && session.user) startApp(session.user);
+  startApp(session && session.user ? session.user : null);   // 세션이 없으면 열람 전용으로 시작
 }
 
-// 첫 로그인이면 전체 로딩, 세션 만료 후 재로그인이면 화면과 미저장 입력을 유지한 채 복귀
-function handleLoginSuccess(user){
-  if(DB){
-    CURRENT_USER = user;
-    document.getElementById('authGate').style.display = 'none';
-    document.getElementById('appRoot').style.display = 'flex';
-    document.getElementById('whoami').textContent = user.email || '';
-    setStatus('다시 로그인됨');
-    if(pending.config || pending.agents || pending.weeks.size > 0) flushPending();
-    return;
+// 첫 로그인이면 전체 로딩, 이미 열람 중이었다면 데이터를 다시 받지 않고 권한만 올린다
+async function handleLoginSuccess(user){
+  if(!DB){ startApp(user); return; }
+
+  CURRENT_USER = user;
+  document.getElementById('authGate').style.display = 'none';
+  document.getElementById('appRoot').style.display = 'flex';
+  await loadPermissions();
+  applyPermissionsToChrome();
+
+  // 본인 담당자가 있으면 그 탭으로 데려간다
+  if(!PERM.isAdmin && PERM.myAgentId && DB.config.agents.find(a=>a.id===PERM.myAgentId)){
+    DB.ui.currentAgent = PERM.myAgentId;
+    scheduleSave();
   }
-  startApp(user);
+  renderSidebar();
+  renderMain();
+  setStatus('로그인됨 · 자동 저장 중');
+  if(pending.config || pending.agents || pending.weeks.size > 0) flushPending();
 }
 
 // 창을 닫기 전에 아직 저장 안 된 변경이 있으면 즉시 밀어 넣기 시도
